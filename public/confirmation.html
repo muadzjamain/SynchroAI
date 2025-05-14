@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Confirmation - SynchroAI</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+      background-color: #f8f9fa;
+      line-height: 1.6;
+    }
+    
+    .navbar {
+      padding: 15px 0;
+      background-color: #4361ee !important;
+    }
+    
+    .navbar-brand {
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.5rem;
+    }
+    
+    .navbar-light .navbar-nav .nav-link {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .navbar-light .navbar-nav .nav-link:hover {
+      color: #fff;
+    }
+    
+    .main-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 15px;
+    }
+    
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 30px;
+    }
+    
+    .confirmation-card {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      padding: 30px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .confirmation-icon {
+      font-size: 4rem;
+      color: #4361ee;
+      margin-bottom: 20px;
+    }
+    
+    .confirmation-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+    }
+    
+    .confirmation-message {
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+    }
+    
+    .order-details {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+      text-align: left;
+    }
+    
+    .order-details-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+    
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .order-item:last-child {
+      border-bottom: none;
+    }
+    
+    .next-steps {
+      margin-top: 30px;
+      text-align: left;
+    }
+    
+    .next-steps-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+    
+    .next-steps-list {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    
+    .next-steps-list li {
+      padding: 10px 0;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      align-items: flex-start;
+    }
+    
+    .next-steps-list li:last-child {
+      border-bottom: none;
+    }
+    
+    .step-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      background-color: #4361ee;
+      color: #fff;
+      border-radius: 50%;
+      margin-right: 15px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    
+    .btn-primary {
+      background-color: #4361ee;
+      border-color: #4361ee;
+      padding: 12px 24px;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+    
+    .btn-primary:hover {
+      background-color: #3a56d4;
+      border-color: #3a56d4;
+    }
+    
+    .btn-outline-primary {
+      color: #4361ee;
+      border-color: #4361ee;
+      padding: 12px 24px;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+    
+    .btn-outline-primary:hover {
+      background-color: #4361ee;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">
+        <i class="bi bi-robot me-2"></i>SynchroAI
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="profile.html">My Services</a>
+          </li>
+        </ul>
+        <!-- Guest Navigation -->
+        <div class="auth-guest" style="display: block;">
+          <a href="login.html" class="btn btn-outline-light me-2">Log In</a>
+          <a href="signup.html" class="btn btn-light">Sign Up</a>
+        </div>
+        <!-- User Navigation -->
+        <div class="auth-user dropdown" style="display: none;">
+          <a class="btn btn-outline-light dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle user-icon"></i><span>User</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <li><a class="dropdown-item" href="profile.html">My Services</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main-container">
+    <div class="confirmation-card">
+      <i class="bi bi-check-circle-fill confirmation-icon"></i>
+      <h1 class="confirmation-title">Order Confirmed!</h1>
+      <p class="confirmation-message">Thank you for your purchase. Your AI service is now being set up.</p>
+      
+      <div class="order-details">
+        <h2 class="order-details-title">Order Summary</h2>
+        <div id="order-details">
+          <div class="order-item">
+            <span>Order ID</span>
+            <span id="order-id">ORD-2025051301</span>
+          </div>
+          <div class="order-item">
+            <span>Service Type</span>
+            <span id="service-type">WhatsApp FAQ AI Agent</span>
+          </div>
+          <div class="order-item">
+            <span>Date</span>
+            <span id="order-date">May 13, 2025</span>
+          </div>
+          <div class="order-item">
+            <span>Billing Cycle</span>
+            <span>Monthly</span>
+          </div>
+          <div class="order-item">
+            <span>Amount</span>
+            <span id="service-price">$29.99</span>
+          </div>
+          <div class="order-item">
+            <span>Status</span>
+            <span class="text-success">Active</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="next-steps">
+        <h2 class="next-steps-title">Next Steps</h2>
+        <ul class="next-steps-list">
+          <li>
+            <div class="step-number">1</div>
+            <div>
+              <strong>AI Setup in Progress</strong>
+              <p>Our system is currently setting up your AI agent based on the information you provided. This process typically takes 15-30 minutes.</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-number">2</div>
+            <div>
+              <strong>Check Your Email</strong>
+              <p>You will receive an email with instructions on how to connect your WhatsApp Business account to our AI system.</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-number">3</div>
+            <div>
+              <strong>Manage Your Service</strong>
+              <p>You can view and manage your AI service at any time from your profile page. You can update settings, pause the service, or make changes as needed.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="d-grid gap-2 d-md-flex justify-content-md-center mt-4">
+        <a href="profile.html" class="btn btn-primary me-md-2">Go to My Services</a>
+        <a href="index.html" class="btn btn-outline-primary">Return to Home</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-4">
+    <div class="container text-center">
+      <p class="text-muted mb-0">&copy; 2025 SynchroAI. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Custom JavaScript -->
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get service details from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const serviceType = urlParams.get('service');
+      const servicePrice = urlParams.get('price');
+      const orderId = urlParams.get('orderId') || `ORD-${Math.floor(Math.random() * 1000000000).toString().padStart(9, '0')}`;
+      
+      // Update order summary
+      if (serviceType) {
+        document.getElementById('service-type').textContent = serviceType;
+      }
+      
+      if (servicePrice) {
+        document.getElementById('service-price').textContent = `$${servicePrice}`;
+      }
+      
+      document.getElementById('order-id').textContent = orderId;
+      
+      // Set current date
+      const today = new Date();
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      document.getElementById('order-date').textContent = today.toLocaleDateString('en-US', options);
+      
+      // Update next steps based on service type
+      if (serviceType) {
+        const nextStepsList = document.querySelector('.next-steps-list');
+        
+        if (serviceType.includes('WhatsApp FAQ')) {
+          // WhatsApp FAQ specific steps
+          nextStepsList.innerHTML = `
+            <li>
+              <div class="step-number">1</div>
+              <div>
+                <strong>AI Setup in Progress</strong>
+                <p>Our system is currently setting up your FAQ AI agent based on the information you provided. This process typically takes 15-30 minutes.</p>
+              </div>
+            </li>
+            <li>
+              <div class="step-number">2</div>
+              <div>
+                <strong>Check Your Email</strong>
+                <p>You will receive an email with instructions on how to connect your WhatsApp Business account to our AI system.</p>
+              </div>
+            </li>
+            <li>
+              <div class="step-number">3</div>
+              <div>
+                <strong>Test Your FAQ Bot</strong>
+                <p>Once setup is complete, you can test your FAQ bot by sending common questions to your WhatsApp Business number.</p>
+              </div>
+            </li>
+          `;
+        } else if (serviceType.includes('WhatsApp Order')) {
+          // WhatsApp Order specific steps
+          nextStepsList.innerHTML = `
+            <li>
+              <div class="step-number">1</div>
+              <div>
+                <strong>AI Setup in Progress</strong>
+                <p>Our system is currently setting up your Order AI agent based on the information you provided. This process typically takes 15-30 minutes.</p>
+              </div>
+            </li>
+            <li>
+              <div class="step-number">2</div>
+              <div>
+                <strong>Check Your Email</strong>
+                <p>You will receive an email with instructions on how to connect your WhatsApp Business account to our AI system and set up your product catalog.</p>
+              </div>
+            </li>
+            <li>
+              <div class="step-number">3</div>
+              <div>
+                <strong>Configure Payment Processing</strong>
+                <p>Follow the instructions in the email to configure your payment processing methods and order fulfillment workflow.</p>
+              </div>
+            </li>
+          `;
+        } else if (serviceType.includes('Custom AI')) {
+          // Custom AI specific steps
+          nextStepsList.innerHTML = `
+            <li>
+              <div class="step-number">1</div>
+              <div>
+                <strong>Initial Review</strong>
+                <p>Our AI specialists are reviewing your requirements and will begin developing your custom AI solution.</p>
+              </div>
+            </li>
+            <li>
+              <div class="step-number">2</div>
+              <div>
+                <strong>Consultation Call</strong>
+                <p>You will receive an email within 24 hours to schedule a consultation call with our AI development team.</p>
+              </div>
+            </li>
+            <li>
+              <div class="step-number">3</div>
+              <div>
+                <strong>Development & Testing</strong>
+                <p>After the consultation, we will develop and test your custom AI solution according to your specifications.</p>
+              </div>
+            </li>
+            <li>
+              <div class="step-number">4</div>
+              <div>
+                <strong>Deployment</strong>
+                <p>Once development is complete, we will deploy your custom AI solution and provide training on how to use and manage it.</p>
+              </div>
+            </li>
+          `;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

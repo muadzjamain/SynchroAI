@@ -1,0 +1,97 @@
+<%- include('layout') %>
+
+<div class="container">
+  <!-- Hero Section -->
+  <section class="py-5 text-center">
+    <div class="row py-lg-5">
+      <div class="col-lg-8 col-md-10 mx-auto">
+        <h1 class="fw-bold">AI Automation Services for Your Business</h1>
+        <p class="lead text-muted">
+          Enhance your business operations with our AI-powered automation services. Choose from our specialized WhatsApp AI agents or create a custom solution tailored to your needs.
+        </p>
+        <% if (!locals.currentUser) { %>
+          <div class="mt-4">
+            <a href="/auth/register" class="btn btn-primary me-2">Get Started</a>
+            <a href="/auth/login" class="btn btn-outline-secondary">Sign In</a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section class="py-5">
+    <h2 class="text-center mb-5">Our AI Automation Services</h2>
+    
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+      <% services.forEach(service => { %>
+        <div class="col">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body">
+              <div class="text-center mb-3">
+                <i class="bi bi-<%= service.icon %> text-primary" style="font-size: 3rem;"></i>
+              </div>
+              <h3 class="card-title text-center"><%= service.name %></h3>
+              <p class="card-text"><%= service.description %></p>
+              <ul class="list-unstyled">
+                <% service.features.forEach(feature => { %>
+                  <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i><%= feature %></li>
+                <% }); %>
+              </ul>
+            </div>
+            <div class="card-footer bg-transparent border-0 text-center pb-3">
+              <a href="/services/<%= service.id %>" class="btn btn-primary">Select this Service</a>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="py-5">
+    <h2 class="text-center mb-5">How It Works</h2>
+    
+    <div class="row g-4">
+      <div class="col-md-3 text-center">
+        <div class="p-3">
+          <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;">
+            <i class="bi bi-1-circle-fill text-primary" style="font-size: 2.5rem;"></i>
+          </div>
+          <h4>Choose a Service</h4>
+          <p>Select from our specialized AI automation services based on your business needs.</p>
+        </div>
+      </div>
+      
+      <div class="col-md-3 text-center">
+        <div class="p-3">
+          <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;">
+            <i class="bi bi-2-circle-fill text-primary" style="font-size: 2.5rem;"></i>
+          </div>
+          <h4>Configure Your AI</h4>
+          <p>Fill out the service-specific form to customize your AI automation solution.</p>
+        </div>
+      </div>
+      
+      <div class="col-md-3 text-center">
+        <div class="p-3">
+          <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;">
+            <i class="bi bi-3-circle-fill text-primary" style="font-size: 2.5rem;"></i>
+          </div>
+          <h4>Complete Payment</h4>
+          <p>Securely pay for your selected service using our payment gateway.</p>
+        </div>
+      </div>
+      
+      <div class="col-md-3 text-center">
+        <div class="p-3">
+          <div class="bg-light rounded-circle d-inline-flex justify-content-center align-items-center mb-3" style="width: 80px; height: 80px;">
+            <i class="bi bi-4-circle-fill text-primary" style="font-size: 2.5rem;"></i>
+          </div>
+          <h4>Manage Your Services</h4>
+          <p>Access your profile to manage, update, or modify your AI automation services.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

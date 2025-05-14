@@ -1,0 +1,4 @@
+1. Open terminal
+2. Enter below command
+Start: npm start
+Stop: Get-Process -Name node | Stop-Process -Force

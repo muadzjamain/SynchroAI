@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom AI Agent - SynchroAI</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+  <!-- Firebase Configuration from Environment Variables -->
+  <script src="/js/env-config.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+      background-color: #f8f9fa;
+      line-height: 1.6;
+    }
+    
+    .navbar {
+      padding: 15px 0;
+      background-color: #4361ee !important;
+    }
+    
+    /* Custom Date Time Picker Styles */
+    .date-time-picker-container {
+      position: relative;
+    }
+    
+    .date-time-picker {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 1000;
+      background-color: white;
+      border: 1px solid #dee2e6;
+      border-radius: 0.25rem;
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+      display: flex;
+      width: 500px;
+      max-width: 100%;
+      margin-top: 5px;
+    }
+    
+    .date-picker {
+      flex: 1;
+      padding: 10px;
+      border-right: 1px solid #dee2e6;
+    }
+    
+    .date-picker-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .days {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+    
+    .day {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 30px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    
+    .day:hover {
+      background-color: #e9ecef;
+    }
+    
+    .day.selected {
+      background-color: #4361ee;
+      color: white;
+    }
+    
+    .day.disabled {
+      color: #adb5bd;
+      cursor: not-allowed;
+    }
+    
+    .time-picker {
+      flex: 1;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .time-picker-header {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    
+    .time-columns {
+      display: flex;
+      justify-content: space-between;
+      flex: 1;
+    }
+    
+    .time-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .time-label {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .time-scroll {
+      overflow-y: auto;
+      height: 150px;
+      width: 100%;
+      text-align: center;
+      border: 1px solid #dee2e6;
+      border-radius: 0.25rem;
+    }
+    
+    .time-item {
+      padding: 5px;
+      cursor: pointer;
+    }
+    
+    .time-item:hover {
+      background-color: #e9ecef;
+    }
+    
+    .time-item.selected {
+      background-color: #4361ee;
+      color: white;
+    }
+    
+    .time-picker-footer {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+    
+    .navbar-brand {
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.5rem;
+    }
+    
+    .navbar-light .navbar-nav .nav-link {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .navbar-light .navbar-nav .nav-link:hover {
+      color: #fff;
+    }
+    
+    .main-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 15px;
+    }
+    
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 30px;
+    }
+    
+    .form-card {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .form-section {
+      margin-bottom: 30px;
+    }
+    
+    .form-section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .form-label {
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    
+    .form-control {
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #dee2e6;
+    }
+    
+    .form-control:focus {
+      border-color: #4361ee;
+      box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+    }
+    
+    .btn-primary {
+      background-color: #4361ee;
+      border-color: #4361ee;
+      padding: 12px 24px;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+    
+    .btn-primary:hover {
+      background-color: #3a56d4;
+      border-color: #3a56d4;
+    }
+    
+    .btn-outline-secondary {
+      color: #6c757d;
+      border-color: #6c757d;
+      padding: 12px 24px;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+    
+    .btn-outline-secondary:hover {
+      background-color: #6c757d;
+      color: #fff;
+    }
+    
+    .price-card {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 30px;
+    }
+    
+    .price-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .price-amount {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #4361ee;
+      margin-bottom: 10px;
+    }
+    
+    .price-period {
+      font-size: 0.9rem;
+      color: #6c757d;
+      margin-bottom: 20px;
+    }
+    
+    .price-features {
+      list-style-type: none;
+      padding-left: 0;
+      margin-bottom: 20px;
+    }
+    
+    .price-features li {
+      padding: 8px 0;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .price-features li:last-child {
+      border-bottom: none;
+    }
+    
+    .price-features i {
+      color: #4361ee;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">
+        <i class="bi bi-robot me-2"></i>SynchroAI
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="profile.html">My Services</a>
+          </li>
+        </ul>
+        <!-- Guest Navigation -->
+        <div class="auth-guest" style="display: block;">
+          <a href="login.html" class="btn btn-outline-light me-2">Log In</a>
+          <a href="signup.html" class="btn btn-light">Sign Up</a>
+        </div>
+        <!-- User Navigation -->
+        <div class="auth-user dropdown" style="display: none;">
+          <a class="btn btn-outline-light dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle user-icon"></i><span>User</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <li><a class="dropdown-item" href="profile.html">My Services</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main-container">
+    <h1 class="page-title">Custom AI Agent</h1>
+    
+    <div class="form-card">
+      <form id="custom-ai-form">
+        <div class="form-section">
+          <h2 class="form-section-title">Custom AI Agent Information</h2>
+          
+          <div class="mb-3">
+            <label for="businessName" class="form-label">Business Name</label>
+            <input type="text" class="form-control" id="businessName" placeholder="Enter your business name" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" placeholder="Enter your email address" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="meetingDate" class="form-label">Meeting Time & Date</label>
+            <div class="date-time-picker-container">
+              <input type="text" class="form-control" id="meetingDate" placeholder="Select date and time" required>
+              <input type="hidden" id="meetingDateTime" name="meetingDateTime">
+            </div>
+            <div class="form-text">Select your preferred time for a consultation call with our AI specialists</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="aiRequirements" class="form-label">Describe what you want the AI agent to do</label>
+            <textarea class="form-control" id="aiRequirements" rows="6" placeholder="Please provide details about your business needs and how you'd like the AI agent to help (e.g., customer support, order processing, appointment scheduling, etc.)" required></textarea>
+          </div>
+        </div>
+        
+        <div class="price-card">
+          <div class="price-title">Custom AI Agent</div>
+          <div class="price-amount">$99.99</div>
+          <div class="price-period">per month</div>
+          <ul class="price-features">
+            <li><i class="bi bi-check-circle"></i> Fully customized AI solution</li>
+            <li><i class="bi bi-check-circle"></i> Integration with your preferred platform</li>
+            <li><i class="bi bi-check-circle"></i> Personalized communication style</li>
+            <li><i class="bi bi-check-circle"></i> Custom workflows and business logic</li>
+            <li><i class="bi bi-check-circle"></i> Dedicated support and optimization</li>
+            <li><i class="bi bi-check-circle"></i> Regular updates and improvements</li>
+          </ul>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+          <a href="index.html" class="btn btn-outline-secondary me-md-2">Cancel</a>
+          <button type="submit" class="btn btn-primary">Send Inquiry</button>
+        </div>
+        
+        <!-- Success Modal -->
+        <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="successModalLabel">Inquiry Sent Successfully</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="text-center mb-4">
+                  <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                </div>
+                <p>Thank you for your interest in our Custom AI Agent service!</p>
+                <p>We've sent a confirmation email to <span id="userEmailDisplay"></span> with details about your inquiry.</p>
+                <p>A Google Meet appointment has been scheduled for the date and time you selected. You'll receive a calendar invitation shortly.</p>
+                <p>Our team will contact you soon to discuss your requirements in detail.</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="window.location.href='index.html'">Return to Home</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-4">
+    <div class="container text-center">
+      <p class="text-muted mb-0">&copy; 2025 SynchroAI. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Flatpickr Date/Time Picker -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  
+  <!-- Custom JavaScript -->
+  <script src="js/main.js"></script>
+  <script>
+    // Date Time Picker Implementation using Flatpickr
+    document.addEventListener('DOMContentLoaded', function() {
+      const dateInput = document.getElementById('meetingDate');
+      const hiddenInput = document.getElementById('meetingDateTime');
+      
+      // Initialize Flatpickr with options
+      const fp = flatpickr(dateInput, {
+        enableTime: true,          // Enable time selection
+        dateFormat: "F j, Y at h:i K", // Format: May 14, 2025 at 10:00 AM
+        minDate: "today",          // Disable past dates
+        minuteIncrement: 15,       // 15-minute intervals
+        time_24hr: false,          // Use 12-hour time with AM/PM
+        defaultHour: 9,            // Default to 9 AM
+        position: "auto",          // Automatically position the calendar
+        static: false,             // Allow the calendar to be hidden when clicking outside
+        disableMobile: false,      // Use native mobile datetime picker if available
+        onChange: function(selectedDates, dateStr) {
+          // When a date is selected, update the hidden input with ISO format
+          if (selectedDates.length > 0) {
+            hiddenInput.value = selectedDates[0].toISOString();
+            console.log('Selected date:', dateStr);
+            console.log('ISO format:', hiddenInput.value);
+          }
+        }
+      });
+      
+      // Open the date picker when the input is clicked or focused
+      dateInput.addEventListener('click', function() {
+        fp.open();
+      });
+      
+      dateInput.addEventListener('focus', function() {
+        fp.open();
+      });
+    });
+    
+    // Handle form submission
+    document.getElementById('custom-ai-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Get form values
+      const businessName = document.getElementById('businessName').value;
+      const email = document.getElementById('email').value;
+      const meetingDateTime = document.getElementById('meetingDateTime').value;
+      const aiRequirements = document.getElementById('aiRequirements').value;
+      
+      // Create form data object
+      const formData = {
+        businessName: businessName,
+        email: email,
+        meetingDateTime: meetingDateTime,
+        aiRequirements: aiRequirements
+      };
+      
+      // Get the submit button and show loading state
+      const submitButton = document.querySelector('button[type="submit"]');
+      const originalButtonText = submitButton.textContent;
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+      
+      // Get a reference to the Firebase function
+      const sendInquiryEmail = firebase.functions().httpsCallable('sendInquiryEmail');
+      
+      // Send inquiry using our server API endpoint
+      fetch('/api/send-inquiry', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          businessName: businessName,
+          email: email,
+          meetingDateTime: meetingDateTime,
+          aiRequirements: aiRequirements
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Inquiry sent successfully:', data);
+        
+        // Store the inquiry in Firebase if the user is logged in
+        const user = firebase.auth().currentUser;
+        if (user) {
+          // Create a record in Firestore
+          firebase.firestore().collection('inquiries').add({
+            userId: user.uid,
+            businessName: businessName,
+            email: email,
+            meetingDateTime: meetingDateTime,
+            aiRequirements: aiRequirements,
+            meetLink: 'Meeting link sent via email',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            status: 'scheduled'
+          })
+          .then((docRef) => {
+            console.log('Inquiry saved with ID:', docRef.id);
+          })
+          .catch((error) => {
+            console.error('Error saving inquiry:', error);
+          });
+        }
+        
+        // Reset the form
+        document.getElementById('custom-ai-form').reset();
+        
+        // Reset the button
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+        
+        // Display user email in the success modal
+        document.getElementById('userEmailDisplay').textContent = email;
+        
+        // Show the success modal
+        const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+        successModal.show();
+      })
+      .catch(error => {
+        console.error('Error sending inquiry:', error);
+        alert('There was an error sending your inquiry. Please try again later.');
+        
+        // Reset the button
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      });
+      
+      // Comment out the original Firebase Function call
+      /*
+      sendInquiryEmail({
+        businessName: businessName,
+        email: email,
+        meetingDateTime: meetingDateTime,
+        aiRequirements: aiRequirements
+      })
+      .then((result) => {
+        // Success handling
+      })
+      .catch((error) => {
+        console.error('Error sending inquiry:', error);
+        alert('There was an error sending your inquiry. Please try again later.');
+      });
+      */
+    });
+  //});
+  </script>
+</body>
+</html>

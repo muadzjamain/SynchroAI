@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SynchroAI - AI Automation Services</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+  <!-- Firebase Configuration from Environment Variables -->
+  <script src="/js/env-config.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+      background-color: #fff;
+      line-height: 1.6;
+    }
+    
+    .navbar {
+      padding: 15px 0;
+      background-color: #4361ee !important;
+    }
+    
+    .navbar-brand {
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.5rem;
+    }
+    
+    .navbar-light .navbar-nav .nav-link {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .navbar-light .navbar-nav .nav-link:hover {
+      color: #fff;
+    }
+    
+    .btn-outline-light {
+      border-color: #fff;
+      color: #fff;
+    }
+    
+    .btn-outline-light:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    
+    .btn-light {
+      background-color: #fff;
+      color: #4361ee;
+    }
+    
+    .main-container {
+      max-width: 1140px;
+      margin: 0 auto;
+      padding: 40px 15px;
+    }
+    
+    .hero-heading {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #333;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .hero-subtext {
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 50px;
+      color: #666;
+    }
+    
+    .service-selection-heading {
+      font-size: 1.75rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .service-card {
+      border: 1px solid #e9ecef;
+      border-radius: 8px;
+      padding: 30px;
+      height: 100%;
+      transition: all 0.3s ease;
+    }
+    
+    .service-card:hover {
+      box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+      transform: translateY(-5px);
+    }
+    
+    .service-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    
+    .service-description {
+      font-size: 0.9rem;
+      color: #666;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .feature-list {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 30px;
+    }
+    
+    .feature-list li {
+      padding: 5px 0;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: flex-start;
+    }
+    
+    .feature-list li i {
+      color: #4CAF50;
+      margin-right: 10px;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    
+    .price {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .price span {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #666;
+    }
+    
+    .btn-select {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      text-align: center;
+      border-radius: 5px;
+      font-weight: 600;
+      background-color: #4361ee;
+      border-color: #4361ee;
+    }
+    
+    .btn-select:hover {
+      background-color: #3a56d4;
+      border-color: #3a56d4;
+    }
+    
+    .auth-user {
+      display: none;
+    }
+    
+    .dropdown-toggle::after {
+      display: none;
+    }
+    
+    .user-icon {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">
+        <i class="bi bi-robot me-2"></i>SynchroAI
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link active" href="index.html">Home</a>
+          </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="profile.html">My Services</a>
+          </li>
+        </ul>
+        <!-- Guest Navigation -->
+        <div class="auth-guest" style="display: block;">
+          <a href="login.html" class="btn btn-outline-light me-2">Log In</a>
+          <a href="signup.html" class="btn btn-light">Sign Up</a>
+        </div>
+        <!-- User Navigation -->
+        <div class="auth-user" style="display: none;">
+          <div class="dropdown">
+            <a class="btn btn-outline-light dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-person-circle user-icon"></i><span>User</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+              <li><a class="dropdown-item" href="profile.html">My Services</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main-container">
+    <!-- Hero Section -->
+    <h1 class="hero-heading">AI Automation Services for Your Business</h1>
+    <p class="hero-subtext">
+      Enhance your customer service and streamline operations with our AI-powered automation solutions. Choose from our specialized WhatsApp AI agents or create a custom solution tailored to your needs.
+    </p>
+    
+    <!-- Service Selection Section -->
+    <h2 class="service-selection-heading">Select Your AI Service</h2>
+    
+    <div class="row g-4">
+      <!-- WhatsApp FAQ AI Agent -->
+      <div class="col-md-4">
+        <div class="service-card">
+          <h3 class="service-title">WhatsApp FAQ AI Agent</h3>
+          <p class="service-description">Automate responses to frequently asked questions through WhatsApp.</p>
+          
+          <ul class="feature-list">
+            <li><i class="bi bi-check2"></i> AI-powered FAQ responses</li>
+            <li><i class="bi bi-check2"></i> Customizable knowledge base</li>
+            <li><i class="bi bi-check2"></i> Seamless WhatsApp integration</li>
+            <li><i class="bi bi-check2"></i> 24/7 customer support automation</li>
+          </ul>
+          
+          <div class="price">$29.99<span>/month</span></div>
+          
+          <a href="form-whatsapp-faq.html" class="btn btn-primary btn-select">Select this Service</a>
+        </div>
+      </div>
+      
+      <!-- WhatsApp Order AI Agent -->
+      <div class="col-md-4">
+        <div class="service-card">
+          <h3 class="service-title">WhatsApp Order AI Agent</h3>
+          <p class="service-description">Streamline order processing and payment verification through WhatsApp.</p>
+          
+          <ul class="feature-list">
+            <li><i class="bi bi-check2"></i> Automated order confirmation</li>
+            <li><i class="bi bi-check2"></i> Payment verification</li>
+            <li><i class="bi bi-check2"></i> Order tracking updates</li>
+            <li><i class="bi bi-check2"></i> Customer notifications</li>
+          </ul>
+          
+          <div class="price">$39.99<span>/month</span></div>
+          
+          <a href="form-whatsapp-order.html" class="btn btn-primary btn-select">Select this Service</a>
+        </div>
+      </div>
+      
+      <!-- Custom AI Agent -->
+      <div class="col-md-4">
+        <div class="service-card">
+          <h3 class="service-title">Custom AI Agent</h3>
+          <p class="service-description">Create a fully customized AI agent tailored to your specific business needs.</p>
+          
+          <ul class="feature-list">
+            <li><i class="bi bi-check2"></i> Fully customizable AI responses</li>
+            <li><i class="bi bi-check2"></i> Advanced conversation flows</li>
+            <li><i class="bi bi-check2"></i> Integration with your systems</li>
+            <li><i class="bi bi-check2"></i> Personalized customer interactions</li>
+          </ul>
+          
+          <div class="price">$59.99<span>/month</span></div>
+          
+          <a href="form-custom-ai.html" class="btn btn-primary btn-select">Select this Service</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-4">
+    <div class="container text-center">
+      <p class="text-muted mb-0">&copy; 2025 SynchroAI. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Custom JavaScript -->
+  <script src="js/main.js"></script>
+</body>
+</html>

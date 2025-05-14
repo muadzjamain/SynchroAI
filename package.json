@@ -1,0 +1,31 @@
+{
+  "name": "synchroai",
+  "version": "1.0.0",
+  "description": "AI Automation Services for Business Owners",
+  "main": "server.js",
+  "scripts": {
+    "start": "set PORT=3000 && node server.js",
+    "dev": "set PORT=3000 && nodemon server.js"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "body-parser": "^1.20.2",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "ejs": "^3.1.9",
+    "express": "^4.21.2",
+    "express-session": "^1.17.3",
+    "firebase": "^9.22.0",
+    "firebase-admin": "^11.8.0",
+    "nodemailer": "^7.0.3",
+    "stripe": "^12.5.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
