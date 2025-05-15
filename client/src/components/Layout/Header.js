@@ -26,6 +26,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import LogoutIcon from '@mui/icons-material/Logout';
 import HomeIcon from '@mui/icons-material/Home';
 import AppsIcon from '@mui/icons-material/Apps';
+import SettingsIcon from '@mui/icons-material/Settings';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useWallet } from '../../contexts/WalletContext';
@@ -160,6 +161,12 @@ const Header = () => {
                 </ListItemIcon>
                 My Services
               </MenuItem>
+              <MenuItem component={RouterLink} to="/account-settings" onClick={handleClose}>
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                Account Settings
+              </MenuItem>
               <Divider />
               <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
@@ -222,6 +229,12 @@ const Header = () => {
                       </Box>
                     } 
                   />
+                </ListItem>
+                <ListItem button component={RouterLink} to="/account-settings">
+                  <ListItemIcon>
+                    <SettingsIcon />
+                  </ListItemIcon>
+                  <ListItemText primary="Account Settings" />
                 </ListItem>
                 <Divider />
                 <ListItem button onClick={handleLogout}>

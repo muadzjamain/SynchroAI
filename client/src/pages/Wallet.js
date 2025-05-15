@@ -75,7 +75,8 @@ const Wallet = () => {
     if (currentUser) {
       fetchTransactionHistory();
     }
-  }, [currentUser, fetchTransactionHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
   const handleAmountSelect = (amount) => {
     setSelectedAmount(amount);

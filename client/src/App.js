@@ -17,6 +17,8 @@ import WalletSuccess from './pages/WalletSuccess';
 import FormWhatsappFaq from './pages/FormWhatsappFaq';
 import FormWhatsappOrder from './pages/FormWhatsappOrder';
 import FormCustomAi from './pages/FormCustomAi';
+import ViewOrders from './pages/ViewOrders';
+import AccountSettings from './pages/AccountSettings';
 import NotFound from './pages/NotFound';
 
 // Protected Route component
@@ -73,6 +75,16 @@ function App() {
           <Route path="form-custom-ai" element={
             <ProtectedRoute>
               <FormCustomAi />
+            </ProtectedRoute>
+          } />
+          <Route path="view-orders/:serviceId" element={
+            <ProtectedRoute>
+              <ViewOrders />
+            </ProtectedRoute>
+          } />
+          <Route path="account-settings" element={
+            <ProtectedRoute>
+              <AccountSettings />
             </ProtectedRoute>
           } />
           

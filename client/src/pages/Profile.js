@@ -165,16 +165,33 @@ const Profile = () => {
     }
   };
 
-  // Format date
+  // Format date with time
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
     
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
+    
+    // Format the date part: May 15, 2025
+    const datePart = date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
+    
+    // Format the time part: 3:38pm
+    let hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    
+    // Convert to 12-hour format
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    
+    // Format minutes with leading zero if needed
+    const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+    
+    // Combine into final format: May 15, 2025 (3:38pm)
+    return `${datePart} (${hours}:${minutesStr}${ampm})`;
   };
 
   return (
@@ -294,6 +311,18 @@ const Profile = () => {
                       {service.status === 'active' ? 'Pause' : 'Activate'}
                     </Button>
                     <Box>
+                      {/* Only show View Orders button for WhatsApp Order AI service */}
+                      {service.type === 'whatsapp-order' && (
+                        <Button
+                          variant="outlined"
+                          color="info"
+                          component={RouterLink}
+                          to={`/view-orders/${service.id}`}
+                          sx={{ mr: 1 }}
+                        >
+                          View Orders
+                        </Button>
+                      )}
                       <Button
                         variant="outlined"
                         color="primary"

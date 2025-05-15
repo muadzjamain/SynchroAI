@@ -20,12 +20,14 @@ import {
   MenuItem,
   FormHelperText
 } from '@mui/material';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
+import { useWallet } from '../contexts/WalletContext';
 
 const FormWhatsappOrder = () => {
   const { currentUser } = useAuth();
+  const { walletBalance, refreshWalletData } = useWallet();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -199,6 +201,16 @@ const FormWhatsappOrder = () => {
       }
     }
     
+    // Check wallet balance if SynchroAI Wallet is selected
+    if (formData.paymentProcessing === 'wallet') {
+      const servicePrice = 125; // $125 for WhatsApp Order AI
+      
+      if (walletBalance < servicePrice) {
+        setError(`Insufficient wallet balance. You need $${servicePrice} but your current balance is $${walletBalance}. Please top up your wallet or choose a different payment method.`);
+        return;
+      }
+    }
+    
     setLoading(true);
     setError('');
     setSuccess('');
@@ -284,6 +296,66 @@ const FormWhatsappOrder = () => {
         };
       }
       
+      // Process payment if using wallet
+      if (!isEditing && formData.paymentProcessing === 'wallet') {
+        const servicePrice = 125; // $125 for WhatsApp Order AI
+        
+        // Create a transaction to update the wallet balance
+        try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          
+          // Handle wallet transaction using Firestore transaction for atomicity
+          await runTransaction(db, async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            
+            if (!userDoc.exists()) {
+              throw new Error('User profile not found');
+            }
+            
+            const userData = userDoc.data();
+            const currentBalance = userData.walletBalance || 0;
+            
+            if (currentBalance < servicePrice) {
+              throw new Error(`Insufficient wallet balance. You need $${servicePrice} but your current balance is $${currentBalance}`);
+            }
+            
+            // Calculate new balance
+            const newBalance = currentBalance - servicePrice;
+            
+            // Update user's wallet balance
+            transaction.update(userRef, { walletBalance: newBalance });
+            
+            // Create a transaction record
+            const transactionRef = doc(collection(db, 'transactions'));
+            const transactionData = {
+              userId: currentUser.uid,
+              type: 'purchase',
+              serviceType: 'whatsapp-order',
+              amount: -servicePrice,  // negative because it's a deduction
+              timestamp: serverTimestamp(),
+              description: 'Purchase of WhatsApp Order AI'
+            };
+            
+            transaction.set(transactionRef, transactionData);
+            
+            // Add payment information to the service record
+            serviceData.paymentInfo = {
+              method: 'wallet',
+              amount: servicePrice,
+              transactionId: transactionRef.id,
+              timestamp: new Date()
+            };
+          });
+          
+          // Refresh wallet data
+          await refreshWalletData();
+          
+        } catch (error) {
+          console.error('Wallet transaction error:', error);
+          throw new Error(`Wallet payment failed: ${error.message}`);
+        }
+      }
+      
       if (isEditing) {
         // Update existing service
         await updateDoc(docRef, serviceData);
@@ -291,7 +363,9 @@ const FormWhatsappOrder = () => {
       } else {
         // Create new service
         await setDoc(docRef, serviceData);
-        setSuccess('Service created successfully');
+        setSuccess(formData.paymentProcessing === 'wallet' ? 
+          'Service created successfully. $125 has been deducted from your wallet.' : 
+          'Service created successfully');
       }
       
       // Redirect to profile after short delay

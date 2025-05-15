@@ -6,6 +6,16 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { google } = require('googleapis');
+const admin = require('firebase-admin');
+
+// Initialize Firebase Admin if not already initialized
+if (!admin.apps.length) {
+  // Use application default credentials approach
+  admin.initializeApp({
+    projectId: process.env.FIREBASE_PROJECT_ID
+  });
+  console.log('Firebase Admin initialized successfully');
+}
 
 // Initialize Express app
 const app = express();
@@ -604,6 +614,76 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
 }
+
+// API endpoint to process wallet transactions for service purchases
+app.post('/api/wallet-transaction', async (req, res) => {
+  try {
+    const { userId, serviceType, amount } = req.body;
+    
+    if (!userId || !serviceType || !amount) {
+      return res.status(400).json({ error: 'Missing required fields: userId, serviceType, and amount are required' });
+    }
+    
+    console.log(`Processing wallet transaction: $${amount} for ${serviceType} by user ${userId}`);
+    
+    // Get Firestore instance
+    const db = admin.firestore();
+    
+    // Start a transaction to ensure atomicity
+    const result = await db.runTransaction(async (transaction) => {
+      // Get the user's current wallet balance
+      const userRef = db.collection('users').doc(userId);
+      const userDoc = await transaction.get(userRef);
+      
+      if (!userDoc.exists) {
+        throw new Error('User not found');
+      }
+      
+      const userData = userDoc.data();
+      const currentBalance = userData.walletBalance || 0;
+      
+      // Check if user has sufficient funds
+      if (currentBalance < amount) {
+        throw new Error('Insufficient funds');
+      }
+      
+      // Calculate new balance
+      const newBalance = currentBalance - amount;
+      
+      // Update user's wallet balance
+      transaction.update(userRef, { walletBalance: newBalance });
+      
+      // Create a transaction record
+      const transactionRef = db.collection('transactions').doc();
+      const transactionData = {
+        userId,
+        type: 'purchase',
+        serviceType,
+        amount: -amount, // Negative because it's a deduction
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        description: `Purchase of ${serviceType === 'whatsapp-faq' ? 'WhatsApp FAQ AI' : 'WhatsApp Order AI'}`
+      };
+      
+      transaction.set(transactionRef, transactionData);
+      
+      return {
+        success: true,
+        previousBalance: currentBalance,
+        newBalance,
+        transactionId: transactionRef.id
+      };
+    });
+    
+    console.log('Wallet transaction successful:', result);
+    res.json(result);
+  } catch (error) {
+    console.error('Error processing wallet transaction:', error);
+    res.status(500).json({ 
+      error: error.message,
+      success: false
+    });
+  }
+});
 
 // Start server
 app.listen(PORT, () => {

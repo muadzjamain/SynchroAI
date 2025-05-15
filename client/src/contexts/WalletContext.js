@@ -46,15 +46,16 @@ export function WalletProvider({ children }) {
     setLoading(true);
     try {
       const db = getFirestore();
+      
+      // Approach 1: Get all transactions for the user without sorting
+      // This avoids the need for a composite index
       const q = query(
         collection(db, 'transactions'),
-        where('userId', '==', currentUser.uid),
-        orderBy('timestamp', 'desc'),
-        limit(10)
+        where('userId', '==', currentUser.uid)
       );
       
       const querySnapshot = await getDocs(q);
-      const transactionsList = [];
+      let transactionsList = [];
       
       querySnapshot.forEach((doc) => {
         transactionsList.push({
@@ -62,6 +63,16 @@ export function WalletProvider({ children }) {
           ...doc.data()
         });
       });
+      
+      // Sort the transactions client-side by timestamp
+      transactionsList = transactionsList.sort((a, b) => {
+        const timestampA = a.timestamp?.toDate?.() || new Date(a.timestamp || 0);
+        const timestampB = b.timestamp?.toDate?.() || new Date(b.timestamp || 0);
+        return timestampB - timestampA; // Descending (newest first)
+      });
+      
+      // Limit to 10 transactions after sorting
+      transactionsList = transactionsList.slice(0, 10);
       
       setTransactions(transactionsList);
       setError('');
