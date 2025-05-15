@@ -1,91 +1,48 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Box,
   Typography,
   TextField,
   Button,
   Grid,
-  Divider,
+  Paper,
+  Box,
   Alert,
   CircularProgress,
-  Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Container
 } from '@mui/material';
+// No need for date picker imports
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 
 const FormCustomAi = () => {
-  const { currentUser } = useAuth();
+  const { serviceId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser } = useAuth();
   
-  // Get service ID from URL if editing existing service
-  const params = new URLSearchParams(location.search);
-  const serviceId = params.get('id');
-  const isEditing = !!serviceId;
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!currentUser && !location.pathname.includes('login')) {
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  }, [currentUser, navigate, location]);
   
+  // Form state
   const [formData, setFormData] = useState({
     businessName: '',
-    platformType: 'website',
-    aiRequirements: '',
-    aiTone: 'professional',
-    customResponses: '',
-    additionalFeatures: ''
+    email: '',
+    businessNumber: '',
+    meetingDate: '',
+    meetingTime: '',
+    requirements: ''
   });
   
   const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(isEditing);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  // Fetch service data if editing
-  useEffect(() => {
-    const fetchServiceData = async () => {
-      if (!serviceId || !currentUser) return;
-      
-      try {
-        const db = getFirestore();
-        const serviceDoc = await getDoc(doc(db, 'services', serviceId));
-        
-        if (serviceDoc.exists()) {
-          const serviceData = serviceDoc.data();
-          
-          // Verify this service belongs to the current user
-          if (serviceData.userId !== currentUser.uid) {
-            setError('You do not have permission to edit this service');
-            navigate('/profile');
-            return;
-          }
-          
-          // Set form data
-          setFormData({
-            businessName: serviceData.businessName || '',
-            platformType: serviceData.platformType || 'website',
-            aiRequirements: serviceData.aiRequirements || '',
-            aiTone: serviceData.aiTone || 'professional',
-            customResponses: serviceData.customResponses || '',
-            additionalFeatures: serviceData.additionalFeatures || ''
-          });
-        } else {
-          setError('Service not found');
-          navigate('/profile');
-        }
-      } catch (err) {
-        console.error('Error fetching service data:', err);
-        setError('Failed to load service data');
-      } finally {
-        setLoadingData(false);
-      }
-    };
-    
-    fetchServiceData();
-  }, [serviceId, currentUser, navigate]);
-  
-  // Handle form input changes
+  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -94,13 +51,49 @@ const FormCustomAi = () => {
     }));
   };
   
+  // Load service data if editing
+  useEffect(() => {
+    const loadService = async () => {
+      if (serviceId && currentUser) {
+        try {
+          setLoading(true);
+          const db = getFirestore();
+          const serviceRef = doc(db, 'users', currentUser.uid, 'services', serviceId);
+          const serviceSnap = await getDoc(serviceRef);
+          
+          if (serviceSnap.exists()) {
+            const serviceData = serviceSnap.data();
+            setFormData(serviceData);
+          } else {
+            setError('Service not found');
+            setTimeout(() => navigate('/profile'), 2000);
+          }
+        } catch (err) {
+          console.error('Error loading service:', err);
+          setError('Error loading service data');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadService();
+  }, [serviceId, currentUser, navigate]);
+  
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validation
-    if (!formData.businessName || !formData.aiRequirements) {
+    if (!formData.businessName || !formData.email || !formData.businessNumber || !formData.meetingDate || !formData.meetingTime || !formData.requirements) {
       setError('Please fill in all required fields');
+      return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address');
       return;
     }
     
@@ -109,200 +102,197 @@ const FormCustomAi = () => {
     setSuccess('');
     
     try {
+      // First, save to Firestore
       const db = getFirestore();
+      const userServicesRef = collection(db, 'users', currentUser.uid, 'services');
+      
       const serviceData = {
         ...formData,
-        userId: currentUser.uid,
         type: 'custom-ai',
-        status: isEditing ? undefined : 'pending', // Custom AI starts as pending until approved
+        status: 'pending',
+        createdAt: new Date(),
         updatedAt: new Date()
       };
       
-      if (isEditing) {
+      let firestoreSuccess = true;
+      
+      if (serviceId) {
         // Update existing service
-        await updateDoc(doc(db, 'services', serviceId), serviceData);
-        setSuccess('Service updated successfully');
+        const serviceRef = doc(db, 'users', currentUser.uid, 'services', serviceId);
+        await updateDoc(serviceRef, {
+          ...serviceData,
+          updatedAt: new Date()
+        });
       } else {
         // Create new service
-        const newServiceRef = doc(collection(db, 'services'));
-        serviceData.createdAt = new Date();
-        await setDoc(newServiceRef, serviceData);
-        setSuccess('Service request submitted successfully. Our team will contact you shortly.');
+        await setDoc(doc(userServicesRef), serviceData);
       }
       
-      // Redirect to profile after short delay
+      // Then, send emails with Google Meet link
+      try {
+        const response = await fetch('/api/custom-ai-form', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to send emails');
+        }
+        
+        // Show success message with Google Meet link and calendar info
+        setSuccess(`Service created successfully! A confirmation email has been sent to ${formData.email} with your Google Meet link for the consultation. This meeting has also been added to your Google Calendar.`);
+      } catch (emailError) {
+        console.error('Error sending emails:', emailError);
+        // Still show success for Firestore save, but mention email issue
+        setSuccess('Service created successfully, but there was an issue sending the confirmation email. Our team will contact you shortly.');
+      }
+      
+      // Reset form after successful submission
+      if (!serviceId) {
+        setFormData({
+          businessName: '',
+          email: '',
+          businessNumber: '',
+          meetingDate: '',
+          meetingTime: '',
+          requirements: ''
+        });
+      }
+      
+      // Redirect to profile after a delay
       setTimeout(() => {
         navigate('/profile');
-      }, 1500);
+      }, 3000); // Longer delay to ensure user sees the success message with Google Meet info
     } catch (err) {
       console.error('Error saving service:', err);
-      setError('Failed to save service');
+      setError('Failed to save service. Please try again.');
     } finally {
       setLoading(false);
     }
   };
   
-  if (loadingData) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-  
   return (
-    <Box>
-      <Typography variant="h4" component="h1" gutterBottom fontWeight="bold">
-        {isEditing ? 'Edit Custom AI Agent' : 'Request Custom AI Agent'}
-      </Typography>
-      
-      <Typography variant="body1" color="text.secondary" paragraph>
-        Tell us about your business needs and we'll create a custom AI solution tailored specifically for you.
-      </Typography>
-      
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
-      
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          {success}
-        </Alert>
-      )}
-      
-      <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-        <Box component="form" onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                required
-                label="Business Name"
-                name="businessName"
-                value={formData.businessName}
-                onChange={handleInputChange}
-                disabled={loading}
-              />
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel id="platform-type-label">Platform Type</InputLabel>
-                <Select
-                  labelId="platform-type-label"
-                  name="platformType"
-                  value={formData.platformType}
+    <Box sx={{ py: 5 }}>
+      <Container maxWidth="md">
+        <Typography variant="h4" component="h1" gutterBottom>
+          {serviceId ? 'Edit Custom AI Agent' : 'Create Custom AI Agent'}
+        </Typography>
+        <Typography variant="subtitle1" color="text.secondary" paragraph>
+          Tell us what you need, and we'll create a fully customized AI solution for your business.
+        </Typography>
+        
+        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 3 }}>{success}</Alert>}
+        
+        <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+          <Box component="form" onSubmit={handleSubmit}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Business Name"
+                  name="businessName"
+                  value={formData.businessName}
                   onChange={handleInputChange}
-                  label="Platform Type"
                   disabled={loading}
-                >
-                  <MenuItem value="website">Website</MenuItem>
-                  <MenuItem value="whatsapp">WhatsApp</MenuItem>
-                  <MenuItem value="facebook">Facebook</MenuItem>
-                  <MenuItem value="telegram">Telegram</MenuItem>
-                  <MenuItem value="slack">Slack</MenuItem>
-                  <MenuItem value="discord">Discord</MenuItem>
-                  <MenuItem value="other">Other</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                required
-                label="AI Requirements"
-                name="aiRequirements"
-                value={formData.aiRequirements}
-                onChange={handleInputChange}
-                multiline
-                rows={5}
-                placeholder="Describe what you want your AI agent to do. Be as specific as possible."
-                helperText="Describe your business needs, the problems you want to solve, and any specific features you need."
-                disabled={loading}
-              />
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel id="ai-tone-label">AI Tone</InputLabel>
-                <Select
-                  labelId="ai-tone-label"
-                  name="aiTone"
-                  value={formData.aiTone}
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
                   onChange={handleInputChange}
-                  label="AI Tone"
+                  placeholder="your@email.com"
                   disabled={loading}
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Business Number"
+                  name="businessNumber"
+                  value={formData.businessNumber}
+                  onChange={handleInputChange}
+                  placeholder="+1234567890"
+                  helperText="Include country code (e.g., +1 for US)"
+                  disabled={loading}
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Meeting Date"
+                  name="meetingDate"
+                  type="date"
+                  value={formData.meetingDate}
+                  onChange={handleInputChange}
+                  InputLabelProps={{ shrink: true }}
+                  helperText="Select a date for your consultation call"
+                  disabled={loading}
+                />
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Meeting Time"
+                  name="meetingTime"
+                  type="time"
+                  value={formData.meetingTime}
+                  onChange={handleInputChange}
+                  InputLabelProps={{ shrink: true }}
+                  helperText="Select a time for your consultation call"
+                  disabled={loading}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  required
+                  multiline
+                  rows={4}
+                  label="Describe what you want the AI agent to do"
+                  name="requirements"
+                  value={formData.requirements}
+                  onChange={handleInputChange}
+                  placeholder="Please provide as much detail as possible about your requirements..."
+                  disabled={loading}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  size="large"
+                  disabled={loading}
+                  sx={{ mt: 2 }}
                 >
-                  <MenuItem value="professional">Professional</MenuItem>
-                  <MenuItem value="friendly">Friendly & Casual</MenuItem>
-                  <MenuItem value="formal">Formal</MenuItem>
-                  <MenuItem value="humorous">Humorous</MenuItem>
-                  <MenuItem value="empathetic">Empathetic</MenuItem>
-                </Select>
-              </FormControl>
+                  {loading ? <CircularProgress size={24} /> : serviceId ? 'Update Service' : 'Submit Request'}
+                </Button>
+              </Grid>
             </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Custom Responses"
-                name="customResponses"
-                value={formData.customResponses}
-                onChange={handleInputChange}
-                multiline
-                rows={3}
-                placeholder="Examples of specific responses you want your AI to use"
-                helperText="Optional: Provide examples of how you want your AI to respond in certain situations"
-                disabled={loading}
-              />
-            </Grid>
-            
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Additional Features"
-                name="additionalFeatures"
-                value={formData.additionalFeatures}
-                onChange={handleInputChange}
-                multiline
-                rows={3}
-                placeholder="Any other features or integrations you need"
-                helperText="Optional: Describe any additional features, integrations, or special requirements"
-                disabled={loading}
-              />
-            </Grid>
-          </Grid>
-          
-          <Divider sx={{ my: 3 }} />
-          
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-            <Button
-              variant="outlined"
-              onClick={() => navigate('/profile')}
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              disabled={loading}
-            >
-              {loading ? (
-                <CircularProgress size={24} />
-              ) : isEditing ? (
-                'Update Request'
-              ) : (
-                'Submit Request'
-              )}
-            </Button>
           </Box>
-        </Box>
-      </Paper>
+        </Paper>
+      </Container>
     </Box>
   );
 };

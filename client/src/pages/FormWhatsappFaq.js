@@ -12,7 +12,12 @@ import {
   Divider,
   Alert,
   CircularProgress,
-  Paper
+  Paper,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormHelperText
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
@@ -31,9 +36,15 @@ const FormWhatsappFaq = () => {
   
   const [formData, setFormData] = useState({
     businessName: '',
-    whatsappNumber: '',
     email: '',
-    faqFile: null
+    whatsappNumber: '',
+    businessWebsite: '',
+    aiRole: '',
+    aiTone: 'Professional',
+    faqFile: null,
+    businessHours: '',
+    paymentProcessing: 'stripe',
+    receiveEmails: 'yes'
   });
   
   const [loading, setLoading] = useState(false);
@@ -97,8 +108,8 @@ const FormWhatsappFaq = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.businessName || !formData.whatsappNumber || !formData.email) {
+    // Validation for required fields
+    if (!formData.businessName || !formData.whatsappNumber || !formData.email || !formData.aiRole) {
       setError('Please fill in all required fields');
       return;
     }
@@ -112,7 +123,7 @@ const FormWhatsappFaq = () => {
     
     // Validate file upload
     if (!formData.faqFile) {
-      setError('Please upload your FAQ & Company Overview file');
+      setError('Please upload your FAQ Knowledge Base file');
       return;
     }
     
@@ -120,7 +131,7 @@ const FormWhatsappFaq = () => {
     const allowedFileTypes = ['.pdf', '.xls', '.xlsx', '.csv'];
     const fileExtension = formData.faqFile.name.substring(formData.faqFile.name.lastIndexOf('.'));
     if (!allowedFileTypes.includes(fileExtension.toLowerCase())) {
-      setError('Please upload only PDF or Excel files');
+      setError('Please upload only PDF or Excel files for FAQ Knowledge Base');
       return;
     }
     
@@ -195,6 +206,7 @@ const FormWhatsappFaq = () => {
       <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
+            {/* Business Name */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -207,20 +219,7 @@ const FormWhatsappFaq = () => {
               />
             </Grid>
             
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                required
-                label="WhatsApp Business Number"
-                name="whatsappNumber"
-                value={formData.whatsappNumber}
-                onChange={handleInputChange}
-                placeholder="+1234567890"
-                helperText="Include country code (e.g., +1 for US)"
-                disabled={loading}
-              />
-            </Grid>
-
+            {/* Email */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -234,9 +233,74 @@ const FormWhatsappFaq = () => {
                 disabled={loading}
               />
             </Grid>
+
+            {/* WhatsApp Business Number */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                required
+                label="WhatsApp Business Number"
+                name="whatsappNumber"
+                value={formData.whatsappNumber}
+                onChange={handleInputChange}
+                placeholder="+1234567890"
+                helperText="Include country code (e.g., +1 for US)"
+                disabled={loading}
+              />
+            </Grid>
             
-
-
+            {/* Business Website */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Business Website / Online Store Link"
+                name="businessWebsite"
+                value={formData.businessWebsite}
+                onChange={handleInputChange}
+                placeholder="https://your-store.com or your Shopee/Alibaba link"
+                helperText="Optional: Your official website or online marketplace"
+                disabled={loading}
+              />
+            </Grid>
+            
+            {/* Role of AI Agent */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                required
+                label="Role of AI Agent"
+                name="aiRole"
+                value={formData.aiRole}
+                onChange={handleInputChange}
+                placeholder="Restaurant owner / gadget seller / print shop owner"
+                helperText="Define what type of business the AI agent will represent"
+                disabled={loading}
+              />
+            </Grid>
+            
+            {/* AI Tone */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel id="ai-tone-label">Tone</InputLabel>
+                <Select
+                  labelId="ai-tone-label"
+                  name="aiTone"
+                  value={formData.aiTone}
+                  onChange={handleInputChange}
+                  label="Tone"
+                  disabled={loading}
+                >
+                  <MenuItem value="Formal">Formal</MenuItem>
+                  <MenuItem value="Cheerful">Cheerful</MenuItem>
+                  <MenuItem value="Casual">Casual</MenuItem>
+                  <MenuItem value="Professional">Professional</MenuItem>
+                  <MenuItem value="Friendly">Friendly</MenuItem>
+                </Select>
+                <FormHelperText>Select the tone of voice for your AI assistant</FormHelperText>
+              </FormControl>
+            </Grid>
+            
+            {/* FAQ Knowledge Base */}
             <Grid item xs={12}>
               <Button
                 variant="outlined"
@@ -245,7 +309,7 @@ const FormWhatsappFaq = () => {
                 sx={{ py: 1.5, textAlign: 'left', justifyContent: 'flex-start' }}
                 disabled={loading}
               >
-                FAQ & Company Overview (PDF or Excel)
+                FAQ Knowledge Base (PDF or Excel)
                 <input
                   type="file"
                   hidden
@@ -261,12 +325,62 @@ const FormWhatsappFaq = () => {
                 />
               </Button>
               <Typography variant="caption" color="text.secondary">
-                {formData.faqFile ? `Selected file: ${formData.faqFile.name}` : 'Upload your PDF or Excel file containing FAQs and company information'}
+                {formData.faqFile ? `Selected file: ${formData.faqFile.name}` : 'Required: Upload your FAQs and company information'}
               </Typography>
             </Grid>
+            
+            {/* Business Hours */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Business Hours"
+                name="businessHours"
+                value={formData.businessHours}
+                onChange={handleInputChange}
+                placeholder="Mon-Fri: 9AM-5PM, Sat: 10AM-3PM, Sun: Closed"
+                helperText="Optional: The AI will inform customers when your business is available"
+                disabled={loading}
+              />
+            </Grid>
+            
+            {/* Agent Payment Processing */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel id="payment-processing-label">Agent Payment Processing</InputLabel>
+                <Select
+                  labelId="payment-processing-label"
+                  name="paymentProcessing"
+                  value={formData.paymentProcessing}
+                  onChange={handleInputChange}
+                  label="Agent Payment Processing"
+                  disabled={loading}
+                >
+                  <MenuItem value="stripe">Stripe</MenuItem>
+                  <MenuItem value="wallet">SynchroAI Wallet</MenuItem>
+                </Select>
+                <FormHelperText>Choose how you want to process payments</FormHelperText>
+              </FormControl>
+            </Grid>
+            
+            {/* Receive Emails for Questions */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel id="receive-emails-label">Receive Email for Each Question?</InputLabel>
+                <Select
+                  labelId="receive-emails-label"
+                  name="receiveEmails"
+                  value={formData.receiveEmails}
+                  onChange={handleInputChange}
+                  label="Receive Email for Each Question?"
+                  disabled={loading}
+                >
+                  <MenuItem value="yes">Yes</MenuItem>
+                  <MenuItem value="no">No</MenuItem>
+                </Select>
+                <FormHelperText>Choose if you want to receive an email notification for each question</FormHelperText>
+              </FormControl>
+            </Grid>
           </Grid>
-          
-
           
           <Divider sx={{ my: 3 }} />
           

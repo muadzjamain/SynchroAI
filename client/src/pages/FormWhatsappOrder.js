@@ -17,7 +17,8 @@ import {
   Checkbox,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  FormHelperText
 } from '@mui/material';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,10 +35,21 @@ const FormWhatsappOrder = () => {
   
   const [formData, setFormData] = useState({
     businessName: '',
-    whatsappNumber: '',
     email: '',
+    whatsappNumber: '',
+    businessWebsite: '',
+    aiRole: '',
+    aiTone: 'Professional',
+    catalogFile: null,
     faqFile: null,
-    catalogFile: null
+    businessHours: '',
+    paymentProcessing: 'stripe',
+    paymentMethods: [],
+    receiveEmails: 'yes',
+    qrCodeImage: null,
+    bankName: '',
+    accountNumber: '',
+    accountHolderName: ''
   });
   
   const [loading, setLoading] = useState(false);
@@ -91,13 +103,34 @@ const FormWhatsappOrder = () => {
     fetchServiceData();
   }, [serviceId, currentUser, navigate]);
   
-  // Handle form input changes
+  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+  
+  // Handle payment method checkbox changes
+  const handlePaymentMethodChange = (e) => {
+    const { value, checked } = e.target;
+    
+    if (checked) {
+      // Limit to 3 payment methods
+      if (formData.paymentMethods.length < 3) {
+        setFormData(prev => ({
+          ...prev,
+          paymentMethods: [...prev.paymentMethods, value]
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        paymentMethods: prev.paymentMethods.filter(method => method !== value)
+      }));
+    }
   };
   
 
@@ -106,8 +139,8 @@ const FormWhatsappOrder = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.businessName || !formData.whatsappNumber || !formData.email) {
+    // Validation for required fields
+    if (!formData.businessName || !formData.whatsappNumber || !formData.email || !formData.aiRole) {
       setError('Please fill in all required fields');
       return;
     }
@@ -121,12 +154,12 @@ const FormWhatsappOrder = () => {
     
     // Validate file uploads
     if (!formData.faqFile) {
-      setError('Please upload your FAQ & Company Overview file');
+      setError('Please upload your FAQ Knowledge Base file');
       return;
     }
     
     if (!formData.catalogFile) {
-      setError('Please upload your Product/Services Catalogue file');
+      setError('Please upload your Product/Service Catalogue file');
       return;
     }
     
@@ -135,14 +168,34 @@ const FormWhatsappOrder = () => {
     
     const faqExtension = formData.faqFile.name.substring(formData.faqFile.name.lastIndexOf('.'));
     if (!allowedFileTypes.includes(faqExtension.toLowerCase())) {
-      setError('Please upload only PDF or Excel files for FAQ & Company Overview');
+      setError('Please upload only PDF or Excel files for FAQ Knowledge Base');
       return;
     }
     
     const catalogExtension = formData.catalogFile.name.substring(formData.catalogFile.name.lastIndexOf('.'));
     if (!allowedFileTypes.includes(catalogExtension.toLowerCase())) {
-      setError('Please upload only PDF or Excel files for Product/Services Catalogue');
+      setError('Please upload only PDF or Excel files for Product/Service Catalogue');
       return;
+    }
+    
+    // Validate payment methods (at least one must be selected)
+    if (formData.paymentMethods.length === 0) {
+      setError('Please select at least one payment method to offer customers');
+      return;
+    }
+    
+    // Validate QR code image if QR payment method is selected
+    if (formData.paymentMethods.includes('qr') && !formData.qrCodeImage) {
+      setError('Please upload your QR code image');
+      return;
+    }
+    
+    // Validate bank transfer details if bank transfer payment method is selected
+    if (formData.paymentMethods.includes('bank')) {
+      if (!formData.bankName || !formData.accountNumber || !formData.accountHolderName) {
+        setError('Please fill in all bank transfer details');
+        return;
+      }
     }
     
     setLoading(true);
@@ -216,6 +269,7 @@ const FormWhatsappOrder = () => {
       <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={3}>
+            {/* Business Name */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -228,6 +282,22 @@ const FormWhatsappOrder = () => {
               />
             </Grid>
             
+            {/* Email */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                required
+                label="Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="your@email.com"
+                disabled={loading}
+              />
+            </Grid>
+
+            {/* WhatsApp Business Number */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -241,49 +311,59 @@ const FormWhatsappOrder = () => {
                 disabled={loading}
               />
             </Grid>
-
-            <Grid item xs={12}>
+            
+            {/* Business Website */}
+            <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                required
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
+                label="Business Website / Online Store Link"
+                name="businessWebsite"
+                value={formData.businessWebsite}
                 onChange={handleInputChange}
-                placeholder="your@email.com"
+                placeholder="https://your-store.com or your Shopee/Alibaba link"
+                helperText="Optional: Your official website or online marketplace"
                 disabled={loading}
               />
             </Grid>
             
+            {/* Role of AI Agent */}
             <Grid item xs={12} md={6}>
-              <Button
-                variant="outlined"
-                component="label"
+              <TextField
                 fullWidth
-                sx={{ py: 1.5, textAlign: 'left', justifyContent: 'flex-start' }}
+                required
+                label="Role of AI Agent"
+                name="aiRole"
+                value={formData.aiRole}
+                onChange={handleInputChange}
+                placeholder="Restaurant owner / gadget seller / print shop owner"
+                helperText="Define what type of business the AI agent will represent"
                 disabled={loading}
-              >
-                FAQ & Company Overview (PDF or Excel)
-                <input
-                  type="file"
-                  hidden
-                  accept=".pdf,.xls,.xlsx,.csv"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setFormData(prev => ({
-                        ...prev,
-                        faqFile: e.target.files[0]
-                      }));
-                    }
-                  }}
-                />
-              </Button>
-              <Typography variant="caption" color="text.secondary">
-                {formData.faqFile ? `Selected file: ${formData.faqFile.name}` : 'Upload your PDF or Excel file containing FAQs and company information'}
-              </Typography>
+              />
             </Grid>
-
+            
+            {/* AI Tone */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel id="ai-tone-label">Tone</InputLabel>
+                <Select
+                  labelId="ai-tone-label"
+                  name="aiTone"
+                  value={formData.aiTone}
+                  onChange={handleInputChange}
+                  label="Tone"
+                  disabled={loading}
+                >
+                  <MenuItem value="Formal">Formal</MenuItem>
+                  <MenuItem value="Cheerful">Cheerful</MenuItem>
+                  <MenuItem value="Casual">Casual</MenuItem>
+                  <MenuItem value="Professional">Professional</MenuItem>
+                  <MenuItem value="Friendly">Friendly</MenuItem>
+                </Select>
+                <FormHelperText>Select the tone of voice for your AI assistant</FormHelperText>
+              </FormControl>
+            </Grid>
+            
+            {/* Product/Service Catalogue */}
             <Grid item xs={12} md={6}>
               <Button
                 variant="outlined"
@@ -292,7 +372,7 @@ const FormWhatsappOrder = () => {
                 sx={{ py: 1.5, textAlign: 'left', justifyContent: 'flex-start' }}
                 disabled={loading}
               >
-                Product/Services Catalogue (PDF or Excel)
+                Product/Service Catalogue (PDF or Excel)
                 <input
                   type="file"
                   hidden
@@ -308,9 +388,206 @@ const FormWhatsappOrder = () => {
                 />
               </Button>
               <Typography variant="caption" color="text.secondary">
-                {formData.catalogFile ? `Selected file: ${formData.catalogFile.name}` : 'Upload your PDF or Excel file containing your products or services catalogue'}
+                {formData.catalogFile ? `Selected file: ${formData.catalogFile.name}` : 'Required: Upload your product/service catalogue'}
               </Typography>
             </Grid>
+            
+            {/* FAQ Knowledge Base */}
+            <Grid item xs={12} md={6}>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                sx={{ py: 1.5, textAlign: 'left', justifyContent: 'flex-start' }}
+                disabled={loading}
+              >
+                FAQ Knowledge Base (PDF or Excel)
+                <input
+                  type="file"
+                  hidden
+                  accept=".pdf,.xls,.xlsx,.csv"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setFormData(prev => ({
+                        ...prev,
+                        faqFile: e.target.files[0]
+                      }));
+                    }
+                  }}
+                />
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                {formData.faqFile ? `Selected file: ${formData.faqFile.name}` : 'Required: Upload your FAQs and company information'}
+              </Typography>
+            </Grid>
+            
+            {/* Business Hours */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Business Hours"
+                name="businessHours"
+                value={formData.businessHours}
+                onChange={handleInputChange}
+                placeholder="Mon-Fri: 9AM-5PM, Sat: 10AM-3PM, Sun: Closed"
+                helperText="Optional: The AI will inform customers when your business is available"
+                disabled={loading}
+              />
+            </Grid>
+            
+            {/* Agent Payment Processing */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel id="payment-processing-label">Agent Payment Processing</InputLabel>
+                <Select
+                  labelId="payment-processing-label"
+                  name="paymentProcessing"
+                  value={formData.paymentProcessing}
+                  onChange={handleInputChange}
+                  label="Agent Payment Processing"
+                  disabled={loading}
+                >
+                  <MenuItem value="stripe">Stripe</MenuItem>
+                  <MenuItem value="wallet">SynchroAI Wallet</MenuItem>
+                </Select>
+                <FormHelperText>Choose how you want to process payments</FormHelperText>
+              </FormControl>
+            </Grid>
+            
+            {/* Receive Emails for Orders */}
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
+                <InputLabel id="receive-emails-label">Receive Email for Each Order?</InputLabel>
+                <Select
+                  labelId="receive-emails-label"
+                  name="receiveEmails"
+                  value={formData.receiveEmails}
+                  onChange={handleInputChange}
+                  label="Receive Email for Each Order?"
+                  disabled={loading}
+                >
+                  <MenuItem value="yes">Yes</MenuItem>
+                  <MenuItem value="no">No</MenuItem>
+                </Select>
+                <FormHelperText>Choose if you want to receive an email notification for each order</FormHelperText>
+              </FormControl>
+            </Grid>
+            
+            {/* Payment Methods */}
+            <Grid item xs={12}>
+              <FormControl component="fieldset" fullWidth required>
+                <FormLabel component="legend">Payment Methods to Offer Customers (select up to 3)</FormLabel>
+                <FormGroup row>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formData.paymentMethods.includes('qr')}
+                        onChange={handlePaymentMethodChange}
+                        value="qr"
+                        disabled={loading}
+                      />
+                    }
+                    label="QR Image"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formData.paymentMethods.includes('bank')}
+                        onChange={handlePaymentMethodChange}
+                        value="bank"
+                        disabled={loading}
+                      />
+                    }
+                    label="Bank Transfer"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formData.paymentMethods.includes('cod')}
+                        onChange={handlePaymentMethodChange}
+                        value="cod"
+                        disabled={loading}
+                      />
+                    }
+                    label="Cash on Delivery (COD)"
+                  />
+                </FormGroup>
+                <FormHelperText>Select which payment methods you want to offer to your customers</FormHelperText>
+              </FormControl>
+            </Grid>
+            
+            {/* Conditional QR Code Upload */}
+            {formData.paymentMethods.includes('qr') && (
+              <Grid item xs={12} md={6}>
+                <Button
+                  variant="outlined"
+                  component="label"
+                  fullWidth
+                  sx={{ py: 1.5, textAlign: 'left', justifyContent: 'flex-start' }}
+                  disabled={loading}
+                >
+                  Upload QR Code Image
+                  <input
+                    type="file"
+                    hidden
+                    accept=".jpg,.jpeg,.png"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setFormData(prev => ({
+                          ...prev,
+                          qrCodeImage: e.target.files[0]
+                        }));
+                      }
+                    }}
+                  />
+                </Button>
+                <Typography variant="caption" color="text.secondary">
+                  {formData.qrCodeImage ? `Selected file: ${formData.qrCodeImage.name}` : 'Upload your payment QR code image (JPG, JPEG, PNG)'}
+                </Typography>
+              </Grid>
+            )}
+            
+            {/* Conditional Bank Transfer Details */}
+            {formData.paymentMethods.includes('bank') && (
+              <>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Bank Name"
+                    name="bankName"
+                    value={formData.bankName}
+                    onChange={handleInputChange}
+                    placeholder="e.g., HSBC, Citibank"
+                    disabled={loading}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Account Number"
+                    name="accountNumber"
+                    value={formData.accountNumber}
+                    onChange={handleInputChange}
+                    placeholder="Your bank account number"
+                    disabled={loading}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Account Holder Name"
+                    name="accountHolderName"
+                    value={formData.accountHolderName}
+                    onChange={handleInputChange}
+                    placeholder="Name on the bank account"
+                    disabled={loading}
+                    required
+                  />
+                </Grid>
+              </>
+            )}
           </Grid>
           
           <Divider sx={{ my: 3 }} />
