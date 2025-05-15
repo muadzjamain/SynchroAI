@@ -1,0 +1,585 @@
+{
+  "name": "WhatsApp Shared Webhook - Standard Nodes",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "whatsapp-webhook-standard"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.object }}",
+              "operation": "equals",
+              "value2": "whatsapp_business_account"
+            }
+          ]
+        }
+      },
+      "id": "b1c2d3e4-f5g6-h7i8-j9k0-l1m2n3o4p5q6",
+      "name": "IF (WhatsApp Message)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "customerNumber",
+              "value": "={{ $json.entry[0].changes[0].value.messages[0].from }}"
+            },
+            {
+              "name": "messageContent",
+              "value": "={{ $json.entry[0].changes[0].value.messages[0].text?.body || $json.entry[0].changes[0].value.messages[0].button?.text || \"[Non-text message received]\" }}"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.entry[0].changes[0].value.messages[0].id }}"
+            },
+            {
+              "name": "recipientNumber",
+              "value": "={{ $json.entry[0].changes[0].value.metadata.display_phone_number }}"
+            },
+            {
+              "name": "recipientId",
+              "value": "={{ $json.entry[0].changes[0].value.metadata.phone_number_id }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.entry[0].changes[0].value.messages[0].timestamp }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1d2e3f4-g5h6-i7j8-k9l0-m1n2o3p4q5r6",
+      "name": "Extract WhatsApp Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        680,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $node[\"Extract WhatsApp Data\"].json.timestamp }}",
+        "format": "MMMM DD, YYYY (h:mma)",
+        "outputFieldName": "formattedTimestamp"
+      },
+      "id": "d1e2f3g4-h5i6-j7k8-l9m0-n1o2p3q4r5s6",
+      "name": "Format Timestamp",
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 1,
+      "position": [
+        900,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"Extract WhatsApp Data\"].json.recipientNumber }}",
+              "operation": "equals",
+              "value2": "+6512345678"
+            }
+          ]
+        }
+      },
+      "id": "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      "name": "IF (FAQ Service)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"Extract WhatsApp Data\"].json.recipientNumber }}",
+              "operation": "equals",
+              "value2": "+6587654321"
+            }
+          ]
+        }
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "IF (Order Service)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "serviceId",
+              "value": "faq-service-123"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "Set FAQ Service ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "serviceId",
+              "value": "order-service-456"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "Set Order Service ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "serviceId",
+              "value": "default-service-789"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "Set Default Service ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "collection": "services",
+        "documentId": "={{ $json.serviceId }}"
+      },
+      "id": "j1k2l3m4-n5o6-p7q8-r9s0-t1u2v3w4x5y6",
+      "name": "Get Service Data",
+      "type": "n8n-nodes-base.googleFirestore",
+      "typeVersion": 2,
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "google-firestore-credentials",
+          "name": "Google Firestore Account"
+        }
+      },
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "serviceType",
+              "type": "string",
+              "parameterValue": "={{ $node[\"IF (FAQ Service)\"].json.destination === 'main' ? 'faq' : ($node[\"IF (Order Service)\"].json.destination === 'main' ? 'order' : 'default') }}"
+            },
+            {
+              "name": "contextData",
+              "type": "object",
+              "parameterValue": "={\n  businessInfo: {\n    businessName: $json.businessName || 'Business',\n    businessHours: $json.businessHours || 'Not specified',\n    businessWebsite: $json.businessWebsite || 'Not specified',\n    aiRole: $json.aiRole || 'Customer Service Assistant',\n    aiTone: $json.aiTone || 'Professional'\n  },\n  faqInfo: $json.faqFileInfo || {},\n  catalogInfo: $json.catalogFileInfo || {},\n  bankInfo: {\n    bankName: $json.bankName || '',\n    accountHolderName: $json.accountHolderName || '',\n    accountNumber: $json.accountNumber || ''\n  },\n  paymentInfo: $json.paymentInfo || {},\n  paymentMethods: $json.paymentMethods || [],\n  paymentProcessing: $json.paymentProcessing || 'Not specified',\n  qrCodeImageInfo: $json.qrCodeImageInfo || {}\n}"
+            },
+            {
+              "name": "modelParameters",
+              "type": "json",
+              "parameterValue": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"{{ $json.aiSystemPrompt }}\\n\\nService Type: {{ $json.serviceType }}\\n\\n{% if ($json.serviceType === 'order') { %}Payment Information:\\nPayment Method: {{ $json.contextData.paymentProcessing }}\\n{% if ($json.contextData.bankInfo.bankName) { %}Bank: {{ $json.contextData.bankInfo.bankName }}\\nAccount Holder: {{ $json.contextData.bankInfo.accountHolderName }}\\nAccount Number: {{ $json.contextData.bankInfo.accountNumber }}{% } %}{% } %}\\n\\nCustomer: {{ $node[\\\"Extract WhatsApp Data\\\"].json.messageContent }}\"\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"temperature\": 0.2,\n    \"topP\": 0.8,\n    \"topK\": 40,\n    \"maxOutputTokens\": 1024\n  }\n}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "k1l2m3n4-o5p6-q7r8-s9t0-u1v2w3x4y5z6",
+      "name": "Prepare AI Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        1780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={{$env.GEMINI_API_KEY}}",
+        "method": "POST",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $node[\"Prepare AI Request\"].json.modelParameters }}",
+        "options": {}
+      },
+      "id": "l1m2n3o4-p5q6-r7s8-t9u0-v1w2x3y4z5a6",
+      "name": "Call Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "aiResponse",
+              "value": "={{ $json.body.candidates[0].content.parts[0].text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m1n2o3p4-q5r6-s7t8-u9v0-w1x2y3z4a5b6",
+      "name": "Extract AI Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        2220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "add",
+        "collection": "conversations",
+        "fields": {
+          "values": [
+            {
+              "name": "serviceId",
+              "value": "={{ $node[\"Get Service Data\"].json.id }}"
+            },
+            {
+              "name": "customerNumber",
+              "value": "={{ $node[\"Extract WhatsApp Data\"].json.customerNumber }}"
+            },
+            {
+              "name": "messageContent",
+              "value": "={{ $node[\"Extract WhatsApp Data\"].json.messageContent }}"
+            },
+            {
+              "name": "aiResponse",
+              "value": "={{ $node[\"Extract AI Response\"].json.aiResponse }}"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $node[\"Extract WhatsApp Data\"].json.messageId }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $node[\"Format Timestamp\"].json.formattedTimestamp }}"
+            },
+            {
+              "name": "createdAt",
+              "value": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "id": "n1o2p3q4-r5s6-t7u8-v9w0-x1y2z3a4b5c6",
+      "name": "Log Conversation",
+      "type": "n8n-nodes-base.googleFirestore",
+      "typeVersion": 2,
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "google-firestore-credentials",
+          "name": "Google Firestore Account"
+        }
+      },
+      "position": [
+        2440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $node[\"Extract WhatsApp Data\"].json.recipientId }}",
+        "target": "phoneNumber",
+        "targetValue": "={{ $node[\"Extract WhatsApp Data\"].json.customerNumber }}",
+        "messageType": "text",
+        "text": "={{ $node[\"Extract AI Response\"].json.aiResponse }}",
+        "additionalFields": {}
+      },
+      "id": "o1p2q3r4-s5t6-u7v8-w9x0-y1z2a3b4c5d6",
+      "name": "Send WhatsApp Response",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        300
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-api-credentials",
+          "name": "WhatsApp API Account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "p1q2r3s4-t5u6-v7w8-x9y0-z1a2b3c4d5e6",
+      "name": "No-Op Node",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        460,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "IF (WhatsApp Message)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (WhatsApp Message)": {
+      "main": [
+        [
+          {
+            "node": "Extract WhatsApp Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No-Op Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract WhatsApp Data": {
+      "main": [
+        [
+          {
+            "node": "Format Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Timestamp": {
+      "main": [
+        [
+          {
+            "node": "IF (FAQ Service)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (FAQ Service)": {
+      "main": [
+        [
+          {
+            "node": "Set FAQ Service ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF (Order Service)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Order Service)": {
+      "main": [
+        [
+          {
+            "node": "Set Order Service ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Default Service ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set FAQ Service ID": {
+      "main": [
+        [
+          {
+            "node": "Get Service Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Order Service ID": {
+      "main": [
+        [
+          {
+            "node": "Get Service Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Default Service ID": {
+      "main": [
+        [
+          {
+            "node": "Get Service Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Service Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Request": {
+      "main": [
+        [
+          {
+            "node": "Call Gemini API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Gemini API": {
+      "main": [
+        [
+          {
+            "node": "Extract AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract AI Response": {
+      "main": [
+        [
+          {
+            "node": "Log Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Conversation": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SynchroAI"
+    },
+    {
+      "name": "WhatsApp"
+    },
+    {
+      "name": "Webhook"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2025-05-16T02:40:00.000Z",
+  "versionId": "abcdefgh-1234-5678-90ij-klmnopqrstuv"
+}

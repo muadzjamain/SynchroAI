@@ -24,7 +24,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import GoogleIcon from '@mui/icons-material/Google';
 import { useAuth } from '../contexts/AuthContext';
 
-const Login = () => {
+const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -240,4 +240,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default SignIn;

@@ -1,0 +1,348 @@
+{
+  "name": "WhatsApp Order Processing - Standard Nodes",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "manual"
+      },
+      "id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "serviceId",
+              "value": "={{ $json.serviceId || \"order-service-456\" }}"
+            },
+            {
+              "name": "orderNumber",
+              "value": "={{ $json.orderNumber || \"ORD-\" + Math.floor(Math.random() * 10000) }}"
+            },
+            {
+              "name": "customerNumber",
+              "value": "={{ $json.customerNumber }}"
+            },
+            {
+              "name": "orderDetails",
+              "value": "={{ $json.orderDetails || \"Sample order details\" }}"
+            },
+            {
+              "name": "orderStatus",
+              "value": "={{ $json.orderStatus || \"new\" }}"
+            },
+            {
+              "name": "paymentMethods",
+              "value": "={{ $json.paymentMethods || [\"qr\"] }}"
+            },
+            {
+              "name": "paymentInfo",
+              "value": "={{ $json.paymentInfo || {method: \"wallet\", amount: 0, timestamp: new Date().toISOString(), transactionId: \"\"} }}"
+            },
+            {
+              "name": "qrCodeImageInfo",
+              "value": "={{ $json.qrCodeImageInfo }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1c2d3e4-f5g6-h7i8-j9k0-l1m2n3o4p5q6",
+      "name": "Set Order Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "collection": "services",
+        "documentId": "={{ $node[\"Set Order Parameters\"].json.serviceId }}"
+      },
+      "id": "c1d2e3f4-g5h6-i7j8-k9l0-m1n2o3p4q5r6",
+      "name": "Get Service Data",
+      "type": "n8n-nodes-base.googleFirestore",
+      "typeVersion": 2,
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "google-firestore-credentials",
+          "name": "Google Firestore Account"
+        }
+      },
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "MMMM DD, YYYY (h:mma)",
+        "outputFieldName": "formattedDate"
+      },
+      "id": "d1e2f3g4-h5i6-j7k8-l9m0-n1o2p3q4r5s6",
+      "name": "Format Current Date",
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 1,
+      "position": [
+        900,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "add",
+        "collection": "orders",
+        "fields": {
+          "values": [
+            {
+              "name": "serviceId",
+              "value": "={{ $node[\"Set Order Parameters\"].json.serviceId }}"
+            },
+            {
+              "name": "orderNumber",
+              "value": "={{ $node[\"Set Order Parameters\"].json.orderNumber }}"
+            },
+            {
+              "name": "customerNumber",
+              "value": "={{ $node[\"Set Order Parameters\"].json.customerNumber }}"
+            },
+            {
+              "name": "orderDetails",
+              "value": "={{ $node[\"Set Order Parameters\"].json.orderDetails }}"
+            },
+            {
+              "name": "orderStatus",
+              "value": "={{ $node[\"Set Order Parameters\"].json.orderStatus }}"
+            },
+            {
+              "name": "createdAt",
+              "value": "={{ $now }}"
+            },
+            {
+              "name": "formattedDate",
+              "value": "={{ $node[\"Format Current Date\"].json.formattedDate }}"
+            }
+          ]
+        }
+      },
+      "id": "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      "name": "Create Order Record",
+      "type": "n8n-nodes-base.googleFirestore",
+      "typeVersion": 2,
+      "credentials": {
+        "googleFirestoreOAuth2Api": {
+          "id": "google-firestore-credentials",
+          "name": "Google Firestore Account"
+        }
+      },
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $json.whatsappBusinessId }}",
+        "target": "phoneNumber",
+        "targetValue": "={{ $node[\"Set Order Parameters\"].json.customerNumber }}",
+        "messageType": "text",
+        "text": "=Thank you for your order with {{ $json.businessName }}!\n\nOrder Number: {{ $node[\"Set Order Parameters\"].json.orderNumber }}\nDate: {{ $node[\"Format Current Date\"].json.formattedDate }}\n\nDetails:\n{{ $node[\"Set Order Parameters\"].json.orderDetails }}\n\nWe'll update you on your order status soon.",
+        "additionalFields": {}
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "Send Order Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-api-credentials",
+          "name": "WhatsApp API Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.receiveEmails }}",
+              "operation": "equals",
+              "value2": "yes"
+            }
+          ]
+        }
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "IF (Email Notifications Enabled)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "basicAuth",
+        "genericAuthTypeBasicAuth": {
+          "user": "={{ $env.SMTP_USERNAME }}",
+          "password": "={{ $env.SMTP_PASSWORD }}"
+        },
+        "fromEmail": "={{ $env.NOTIFICATION_EMAIL }}",
+        "toEmail": "={{ $env.ADMIN_EMAIL }}",
+        "subject": "=New Order: {{ $node[\"Set Order Parameters\"].json.orderNumber }} - {{ $json.businessName }}",
+        "text": "=New Order Received\n\nBusiness: {{ $json.businessName }}\nOrder Number: {{ $node[\"Set Order Parameters\"].json.orderNumber }}\nDate: {{ $node[\"Format Current Date\"].json.formattedDate }}\nCustomer: {{ $node[\"Set Order Parameters\"].json.customerNumber }}\n\nDetails:\n{{ $node[\"Set Order Parameters\"].json.orderDetails }}\n\nSign in to your SynchroAI dashboard to manage this order."
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        240
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "No-Op Node",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Order Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Order Parameters": {
+      "main": [
+        [
+          {
+            "node": "Get Service Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Service Data": {
+      "main": [
+        [
+          {
+            "node": "Format Current Date",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Order Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Current Date": {
+      "main": [
+        [
+          {
+            "node": "Create Order Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Order Record": {
+      "main": [
+        [
+          {
+            "node": "Send Order Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Order Confirmation": {
+      "main": [
+        [
+          {
+            "node": "IF (Email Notifications Enabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Email Notifications Enabled)": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No-Op Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SynchroAI"
+    },
+    {
+      "name": "WhatsApp"
+    },
+    {
+      "name": "Orders"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-16T02:40:00.000Z",
+  "versionId": "defghijk-1234-5678-90lm-nopqrstuvwxyz"
+}

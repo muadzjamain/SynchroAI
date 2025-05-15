@@ -9,7 +9,7 @@ import Layout from './components/Layout/Layout';
 
 // Pages
 import Home from './pages/Home';
-import Login from './pages/Login';
+import SignIn from './pages/SignIn';
 import Signup from './pages/Signup';
 import Profile from './pages/Profile';
 import Wallet from './pages/Wallet';
@@ -43,7 +43,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           {/* Public routes */}
           <Route index element={<Home />} />
-          <Route path="login" element={<Login />} />
+          <Route path="login" element={<SignIn />} />
           <Route path="signup" element={<Signup />} />
           
           {/* Protected routes */}

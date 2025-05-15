@@ -1,0 +1,312 @@
+{
+  "name": "Combined Knowledge Base Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "manual"
+      },
+      "id": "e5b077d9-5f3d-4c1e-9d9c-0a9f8d8d7a3a",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// This function sets up the service ID as an input parameter\n// You can replace this with your actual service ID or use it as a workflow variable\nconst serviceId = $input.item.json.serviceId || \"YOUR_SERVICE_ID_HERE\";\n\nreturn {\n  serviceId\n};"
+      },
+      "id": "b8a1c3d5-7e6f-4a2b-9c3d-5e7f8a9b0c1d",
+      "name": "Set Service ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "credentials": {
+          "serviceAccount": "={{ $env.FIREBASE_SERVICE_ACCOUNT_KEY }}"
+        },
+        "operation": "get",
+        "collection": "services",
+        "documentId": "={{ $node[\"Set Service ID\"].json.serviceId }}"
+      },
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "Firestore",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and format the required fields from Firestore data\nconst serviceData = $input.item.json;\n\n// Handle optional fields with default values\nconst businessWebsite = serviceData.businessWebsite || \"\";\nconst faqKnowledgeBase = serviceData.faqFile || \"\";\n\n// Format the data for easier use in subsequent nodes\nreturn {\n  businessName: serviceData.businessName,\n  email: serviceData.email,\n  whatsappNumber: serviceData.whatsappNumber,\n  businessWebsite: businessWebsite,\n  aiRole: serviceData.aiRole,\n  faqKnowledgeBase: faqKnowledgeBase,\n  aiTone: serviceData.aiTone || \"Professional\",\n  paymentMethod: serviceData.paymentProcessing || \"Not specified\",\n  gmailNotificationPreference: serviceData.receiveEmails || \"yes\",\n  // Include the original service ID for reference\n  serviceId: $node[\"Set Service ID\"].json.serviceId,\n  // Include flags for conditional processing\n  hasWebsite: businessWebsite ? true : false,\n  hasFaqFile: faqKnowledgeBase ? true : false,\n  // Include the full original data for reference if needed\n  rawData: serviceData\n};"
+      },
+      "id": "f1e2d3c4-b5a6-7f8e-9d0c-1b2a3c4d5e6f",
+      "name": "Extract Service Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "WEBSITE_SCRAPING_WORKFLOW_ID"
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "Execute Website Scraping",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "FAQ_PROCESSING_WORKFLOW_ID"
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "Execute FAQ Processing",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Wait for both website scraping and FAQ processing to complete\n// This node will combine the results into a single knowledge base\n\n// Get website data from the first workflow execution\nconst websiteData = $node[\"Execute Website Scraping\"].json;\n\n// Get FAQ data from the second workflow execution\nconst faqData = $node[\"Execute FAQ Processing\"].json;\n\n// Format date according to user's preference: \"Month DD, YYYY (h:mmam/pm)\"\nconst now = new Date();\nconst hours = now.getHours();\nconst minutes = now.getMinutes();\nconst ampm = hours >= 12 ? 'pm' : 'am';\nconst formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM\nconst formattedMinutes = minutes < 10 ? '0' + minutes : minutes;\n\nconst months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];\nconst formattedDate = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()} (${formattedHours}:${formattedMinutes}${ampm})`;\n\n// Extract text content from both sources\nconst websiteText = websiteData.extractedText || '';\nconst faqText = faqData.extractedText || '';\n\n// Combine the text with clear section headers\nlet combinedText = '';\nlet sources = [];\n\n// Add business information header\ncombinedText += `BUSINESS INFORMATION\\n`;\ncombinedText += `==================\\n`;\ncombinedText += `Business Name: ${websiteData.businessName}\\n`;\ncombinedText += `Website: ${websiteData.businessWebsite || 'Not provided'}\\n`;\ncombinedText += `WhatsApp: ${websiteData.whatsappNumber || 'Not provided'}\\n\\n`;\n\n// Add website content if available\nif (websiteText) {\n  combinedText += `WEBSITE CONTENT\\n`;\n  combinedText += `===============\\n`;\n  combinedText += `${websiteText}\\n\\n`;\n  sources.push('website');\n}\n\n// Add FAQ content if available\nif (faqText) {\n  combinedText += `FAQ KNOWLEDGE BASE\\n`;\n  combinedText += `==================\\n`;\n  combinedText += `${faqText}\\n\\n`;\n  sources.push('faq');\n}\n\n// Add metadata\ncombinedText += `METADATA\\n`;\ncombinedText += `========\\n`;\ncombinedText += `Generated: ${formattedDate}\\n`;\ncombinedText += `Sources: ${sources.join(', ')}\\n`;\n\n// Calculate statistics\nconst totalWordCount = combinedText.split(/\\s+/).filter(word => word.length > 0).length;\nconst totalCharCount = combinedText.length;\n\n// Prepare the output\nreturn {\n  // Service information\n  serviceId: websiteData.serviceId,\n  businessName: websiteData.businessName,\n  email: websiteData.email,\n  whatsappNumber: websiteData.whatsappNumber,\n  businessWebsite: websiteData.businessWebsite,\n  aiRole: websiteData.aiRole,\n  aiTone: websiteData.aiTone,\n  \n  // Knowledge base content\n  combinedKnowledgeBase: combinedText,\n  \n  // Sources information\n  sources: {\n    website: websiteData.hasWebsite ? true : false,\n    websiteScraped: websiteData.websiteScraped || false,\n    faq: faqData.hasFaqFile ? true : false,\n    faqProcessed: faqData.fileProcessed || false,\n    faqFileType: faqData.fileType || null\n  },\n  \n  // Statistics\n  stats: {\n    totalWordCount,\n    totalCharCount,\n    websiteWordCount: websiteData.textStats ? websiteData.textStats.wordCount : 0,\n    faqWordCount: faqData.textStats ? faqData.textStats.wordCount : 0,\n    generatedAt: formattedDate\n  },\n  \n  // Original data references\n  websiteData,\n  faqData\n};"
+      },
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "Combine Knowledge Base",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "credentials": {
+          "serviceAccount": "={{ $env.FIREBASE_SERVICE_ACCOUNT_KEY }}"
+        },
+        "operation": "update",
+        "collection": "services",
+        "documentId": "={{ $node[\"Combine Knowledge Base\"].json.serviceId }}",
+        "options": {
+          "updateFields": {
+            "combinedKnowledgeBase": "={{ $node[\"Combine Knowledge Base\"].json.combinedKnowledgeBase }}",
+            "knowledgeBaseStats": "={{ $node[\"Combine Knowledge Base\"].json.stats }}",
+            "knowledgeBaseSources": "={{ $node[\"Combine Knowledge Base\"].json.sources }}",
+            "lastUpdated": "={{$json[\"firebase\"].serverTimestamp()}}",
+            "lastUpdatedFormatted": "={{ $node[\"Combine Knowledge Base\"].json.stats.generatedAt }}"
+          }
+        }
+      },
+      "id": "j1k2l3m4-n5o6-p7q8-r9s0-t1u2v3w4x5y6",
+      "name": "Update Service with Knowledge Base",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"Extract Service Parameters\"].json.gmailNotificationPreference }}",
+              "operation": "equals",
+              "value2": "yes"
+            }
+          ]
+        }
+      },
+      "id": "k1l2m3n4-o5p6-q7r8-s9t0-u1v2w3x4y5z6",
+      "name": "IF (Email Notifications Enabled)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.NOTIFICATION_EMAIL}}",
+        "toEmail": "={{ $node[\"Combine Knowledge Base\"].json.email }}",
+        "subject": "=Knowledge Base Updated - {{ $node[\"Combine Knowledge Base\"].json.businessName }} - {{ $node[\"Combine Knowledge Base\"].json.stats.generatedAt }}",
+        "text": "=Your SynchroAI knowledge base has been updated.\n\nBusiness: {{ $node[\"Combine Knowledge Base\"].json.businessName }}\nUpdated: {{ $node[\"Combine Knowledge Base\"].json.stats.generatedAt }}\n\nSources included:\n{{ $node[\"Combine Knowledge Base\"].json.sources.website ? '- Website content' : '' }}\n{{ $node[\"Combine Knowledge Base\"].json.sources.faq ? '- FAQ knowledge base file' : '' }}\n\nStatistics:\n- Total word count: {{ $node[\"Combine Knowledge Base\"].json.stats.totalWordCount }}\n- Website words: {{ $node[\"Combine Knowledge Base\"].json.stats.websiteWordCount }}\n- FAQ words: {{ $node[\"Combine Knowledge Base\"].json.stats.faqWordCount }}\n\nYour AI assistant is now ready to use this updated knowledge base to answer customer inquiries.\n\nThis is an automated notification from SynchroAI.",
+        "options": {}
+      },
+      "id": "l1m2n3o4-p5q6-r7s8-t9u0-v1w2x3y4z5a6",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "m1n2o3p4-q5r6-s7t8-u9v0-w1x2y3z4a5b6",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Service ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Service ID": {
+      "main": [
+        [
+          {
+            "node": "Firestore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firestore": {
+      "main": [
+        [
+          {
+            "node": "Extract Service Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Service Parameters": {
+      "main": [
+        [
+          {
+            "node": "Execute Website Scraping",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute FAQ Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Website Scraping": {
+      "main": [
+        [
+          {
+            "node": "Combine Knowledge Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute FAQ Processing": {
+      "main": [
+        [
+          {
+            "node": "Combine Knowledge Base",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Combine Knowledge Base": {
+      "main": [
+        [
+          {
+            "node": "Update Service with Knowledge Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Service with Knowledge Base": {
+      "main": [
+        [
+          {
+            "node": "IF (Email Notifications Enabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Email Notifications Enabled)": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SynchroAI"
+    },
+    {
+      "name": "KnowledgeBase"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-15T14:23:02.000Z",
+  "versionId": "6789fghi-0123-45jk-lmno-pqrstuvwxyza"
+}

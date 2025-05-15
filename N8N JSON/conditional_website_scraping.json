@@ -1,0 +1,284 @@
+{
+  "name": "Conditional Website Scraping & Text Extraction",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "manual"
+      },
+      "id": "e5b077d9-5f3d-4c1e-9d9c-0a9f8d8d7a3a",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// This function sets up the service ID as an input parameter\n// You can replace this with your actual service ID or use it as a workflow variable\nconst serviceId = $input.item.json.serviceId || \"YOUR_SERVICE_ID_HERE\";\n\nreturn {\n  serviceId\n};"
+      },
+      "id": "b8a1c3d5-7e6f-4a2b-9c3d-5e7f8a9b0c1d",
+      "name": "Set Service ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "credentials": {
+          "serviceAccount": "={{ $env.FIREBASE_SERVICE_ACCOUNT_KEY }}"
+        },
+        "operation": "get",
+        "collection": "services",
+        "documentId": "={{ $node[\"Set Service ID\"].json.serviceId }}"
+      },
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "Firestore",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and format the required fields from Firestore data\nconst serviceData = $input.item.json;\n\n// Handle optional fields with default values\nconst businessWebsite = serviceData.businessWebsite || \"\";\n\n// Format the data for easier use in subsequent nodes\nreturn {\n  businessName: serviceData.businessName,\n  email: serviceData.email,\n  whatsappNumber: serviceData.whatsappNumber,\n  businessWebsite: businessWebsite,\n  aiRole: serviceData.aiRole,\n  faqKnowledgeBase: serviceData.faqFile, // URL to the stored file\n  aiTone: serviceData.aiTone || \"Professional\",\n  paymentMethod: serviceData.paymentProcessing || \"Not specified\",\n  gmailNotificationPreference: serviceData.receiveEmails || \"yes\",\n  // Include the original service ID for reference\n  serviceId: $node[\"Set Service ID\"].json.serviceId,\n  // Include a flag to indicate if businessWebsite is present\n  hasWebsite: businessWebsite ? true : false,\n  // Include the full original data for reference if needed\n  rawData: serviceData\n};"
+      },
+      "id": "f1e2d3c4-b5a6-7f8e-9d0c-1b2a3c4d5e6f",
+      "name": "Extract Service Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $node[\"Extract Service Parameters\"].json.hasWebsite }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "d1c2b3a4-9e8f-7d6c-5b4a-3e2d1c0b9a8f",
+      "name": "IF (Has Website)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $node[\"Extract Service Parameters\"].json.businessWebsite }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check if we have a valid response\nconst response = $input.item.json;\n\nlet htmlContent = \"\";\nlet statusCode = 0;\n\n// Extract HTML content from response\nif (response && response.body) {\n  htmlContent = response.body;\n  statusCode = response.statusCode;\n}\n\n// Check if the request was successful\nconst isSuccess = statusCode >= 200 && statusCode < 300;\n\nreturn {\n  htmlContent,\n  statusCode,\n  isSuccess,\n  url: $node[\"Extract Service Parameters\"].json.businessWebsite,\n  // Pass through the original service data\n  ...($node[\"Extract Service Parameters\"].json)\n};"
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "Process HTTP Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract meaningful text from HTML\nconst data = $input.item.json;\nconst html = data.htmlContent;\n\n// Function to extract text from HTML\nfunction extractTextFromHtml(html) {\n  // Remove scripts and style tags first\n  let cleanHtml = html.replace(/<script\\b[^<]*(?:(?!<\\/script>)<[^<]*)*<\\/script>/gi, '');\n  cleanHtml = cleanHtml.replace(/<style\\b[^<]*(?:(?!<\\/style>)<[^<]*)*<\\/style>/gi, '');\n  \n  // Remove HTML tags\n  cleanHtml = cleanHtml.replace(/<[^>]*>/g, ' ');\n  \n  // Replace multiple spaces with a single space\n  cleanHtml = cleanHtml.replace(/\\s+/g, ' ');\n  \n  // Decode HTML entities\n  cleanHtml = cleanHtml.replace(/&nbsp;/g, ' ');\n  cleanHtml = cleanHtml.replace(/&amp;/g, '&');\n  cleanHtml = cleanHtml.replace(/&lt;/g, '<');\n  cleanHtml = cleanHtml.replace(/&gt;/g, '>');\n  cleanHtml = cleanHtml.replace(/&quot;/g, '\"');\n  cleanHtml = cleanHtml.replace(/&#39;/g, \"'\");\n  \n  // Trim whitespace\n  cleanHtml = cleanHtml.trim();\n  \n  return cleanHtml;\n}\n\n// Extract text\nconst extractedText = extractTextFromHtml(html);\n\n// Truncate if too long (n8n has limits on data size)\nconst maxLength = 100000; // Adjust as needed\nconst truncatedText = extractedText.length > maxLength \n  ? extractedText.substring(0, maxLength) + '... [truncated]' \n  : extractedText;\n\n// Calculate some stats\nconst wordCount = truncatedText.split(/\\s+/).length;\nconst charCount = truncatedText.length;\n\nreturn {\n  ...data,\n  extractedText: truncatedText,\n  textStats: {\n    wordCount,\n    charCount,\n    isTruncated: extractedText.length > maxLength\n  }\n};"
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "Extract Text Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge data from both branches\nconst serviceData = $input.item.json;\n\n// If we came from the website scraping branch, we already have all the data\n// If we came from the no-website branch, we need to add placeholder values\nif (!serviceData.hasOwnProperty('extractedText')) {\n  return {\n    ...serviceData,\n    htmlContent: null,\n    statusCode: null,\n    isSuccess: null,\n    extractedText: null,\n    textStats: {\n      wordCount: 0,\n      charCount: 0,\n      isTruncated: false\n    },\n    websiteScraped: false\n  };\n} else {\n  return {\n    ...serviceData,\n    websiteScraped: true\n  };\n}\n"
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Service ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Service ID": {
+      "main": [
+        [
+          {
+            "node": "Firestore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firestore": {
+      "main": [
+        [
+          {
+            "node": "Extract Service Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Service Parameters": {
+      "main": [
+        [
+          {
+            "node": "IF (Has Website)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Has Website)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Process HTTP Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process HTTP Response": {
+      "main": [
+        [
+          {
+            "node": "Extract Text Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text Content": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SynchroAI"
+    },
+    {
+      "name": "WebScraping"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-15T14:19:56.000Z",
+  "versionId": "4567defg-8901-23hi-jklm-nopqrstuvwxy"
+}

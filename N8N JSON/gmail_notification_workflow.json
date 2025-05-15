@@ -1,0 +1,282 @@
+{
+  "name": "Gmail Notification for Chat Interactions",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "manual"
+      },
+      "id": "e5b077d9-5f3d-4c1e-9d9c-0a9f8d8d7a3a",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// This node is designed to receive chat interaction data\n// It can be triggered by the WhatsApp Business API Integration workflow\n// or any other workflow that processes chat interactions\n\n// For testing purposes, we'll provide sample data\n// In a real implementation, this would be replaced by actual data from the triggering workflow\nconst chatData = $input.item.json.chatData || {\n  serviceId: 'sample-service-id',\n  customerNumber: '+1234567890',\n  messageContent: 'Hello, I have a question about your products.',\n  aiResponse: 'Hello! I would be happy to help you with information about our products. What specific product are you interested in?',\n  messageId: 'wamid.abcd1234',\n  timestamp: Date.now(),\n  formattedTimestamp: 'May 15, 2025 (2:36pm)'\n};\n\nreturn {\n  chatData\n};"
+      },
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "Get Chat Interaction Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "credentials": {
+          "serviceAccount": "={{ $env.FIREBASE_SERVICE_ACCOUNT_KEY }}"
+        },
+        "operation": "get",
+        "collection": "services",
+        "documentId": "={{ $node[\"Get Chat Interaction Data\"].json.chatData.serviceId }}"
+      },
+      "id": "b1c2d3e4-f5g6-h7i8-j9k0-l1m2n3o4p5q6",
+      "name": "Get Service Data",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine chat data with service data\nconst chatData = $node[\"Get Chat Interaction Data\"].json.chatData;\nconst serviceData = $input.item.json;\n\n// Extract email notification preference\nconst gmailNotificationPreference = serviceData.receiveEmails || 'no';\nconst shouldSendNotification = gmailNotificationPreference === 'yes';\n\n// Extract client email\nconst clientEmail = serviceData.email || '';\n\n// Format date according to user's preference: \"Month DD, YYYY (h:mmam/pm)\"\nconst now = new Date();\nconst hours = now.getHours();\nconst minutes = now.getMinutes();\nconst ampm = hours >= 12 ? 'pm' : 'am';\nconst formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM\nconst formattedMinutes = minutes < 10 ? '0' + minutes : minutes;\n\nconst months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];\nconst formattedDate = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()} (${formattedHours}:${formattedMinutes}${ampm})`;\n\nreturn {\n  chatData,\n  serviceData: {\n    id: serviceData.id || '',\n    businessName: serviceData.businessName || 'Your Business',\n    email: clientEmail,\n    whatsappNumber: serviceData.whatsappNumber || '',\n    type: serviceData.type || ''\n  },\n  notificationPreference: {\n    shouldSendNotification,\n    gmailNotificationPreference\n  },\n  formattedDate\n};"
+      },
+      "id": "c1d2e3f4-g5h6-i7j8-k9l0-m1n2o3p4q5r6",
+      "name": "Prepare Notification Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $node[\"Prepare Notification Data\"].json.notificationPreference.shouldSendNotification }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "d1e2f3g4-h5i6-j7k8-l9m0-n1o2p3q4r5s6",
+      "name": "IF (Notifications Enabled)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oauth2",
+        "resource": "message",
+        "operation": "send",
+        "subject": "=New WhatsApp Message - {{ $node[\"Prepare Notification Data\"].json.serviceData.businessName }} - {{ $node[\"Prepare Notification Data\"].json.chatData.formattedTimestamp }}",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <div style=\"background-color: #4285F4; color: white; padding: 20px; text-align: center;\">\n    <h1 style=\"margin: 0;\">New WhatsApp Message</h1>\n  </div>\n  \n  <div style=\"padding: 20px; border: 1px solid #e0e0e0; border-top: none;\">\n    <p>A new WhatsApp message was received and processed by your SynchroAI WhatsApp service.</p>\n    \n    <div style=\"background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;\">\n      <p><strong>Business:</strong> {{ $node[\"Prepare Notification Data\"].json.serviceData.businessName }}</p>\n      <p><strong>Received:</strong> {{ $node[\"Prepare Notification Data\"].json.chatData.formattedTimestamp }}</p>\n      <p><strong>From:</strong> {{ $node[\"Prepare Notification Data\"].json.chatData.customerNumber }}</p>\n    </div>\n    \n    <div style=\"margin: 20px 0;\">\n      <h3>Customer Message:</h3>\n      <div style=\"background-color: #e8f4fd; padding: 15px; border-radius: 5px; border-left: 4px solid #4285F4;\">\n        \"{{ $node[\"Prepare Notification Data\"].json.chatData.messageContent }}\"\n      </div>\n    </div>\n    \n    <div style=\"margin: 20px 0;\">\n      <h3>AI Response:</h3>\n      <div style=\"background-color: #f0f7e9; padding: 15px; border-radius: 5px; border-left: 4px solid #34A853;\">\n        \"{{ $node[\"Prepare Notification Data\"].json.chatData.aiResponse }}\"\n      </div>\n    </div>\n    \n    <p style=\"color: #666; font-size: 12px; margin-top: 30px; text-align: center;\">\n      This is an automated notification from SynchroAI.<br>\n      You're receiving this email because you've enabled notifications for WhatsApp messages.<br>\n      To disable these notifications, please update your settings in the SynchroAI dashboard.\n    </p>\n  </div>\n</div>",
+        "options": {
+          "to": "={{ $node[\"Prepare Notification Data\"].json.serviceData.email }}"
+        }
+      },
+      "id": "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      "name": "Send Gmail Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        240
+      ],
+      "credentials": {
+        "gmailOAuth2Api": {
+          "id": "GMAIL_OAUTH2_CREDENTIALS_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log notification status\nconst data = $input.item.json;\n\n// Format date according to user's preference: \"Month DD, YYYY (h:mmam/pm)\"\nconst now = new Date();\nconst hours = now.getHours();\nconst minutes = now.getMinutes();\nconst ampm = hours >= 12 ? 'pm' : 'am';\nconst formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM\nconst formattedMinutes = minutes < 10 ? '0' + minutes : minutes;\n\nconst months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];\nconst formattedDate = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()} (${formattedHours}:${formattedMinutes}${ampm})`;\n\nreturn {\n  notificationSent: true,\n  sentAt: formattedDate,\n  recipient: $node[\"Prepare Notification Data\"].json.serviceData.email,\n  messageId: data.messageId || '',\n  threadId: data.threadId || '',\n  // Include original data for reference\n  originalData: $node[\"Prepare Notification Data\"].json\n};"
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "Log Notification Success",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log skipped notification\nconst data = $node[\"Prepare Notification Data\"].json;\n\n// Format date according to user's preference: \"Month DD, YYYY (h:mmam/pm)\"\nconst now = new Date();\nconst hours = now.getHours();\nconst minutes = now.getMinutes();\nconst ampm = hours >= 12 ? 'pm' : 'am';\nconst formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM\nconst formattedMinutes = minutes < 10 ? '0' + minutes : minutes;\n\nconst months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];\nconst formattedDate = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()} (${formattedHours}:${formattedMinutes}${ampm})`;\n\nreturn {\n  notificationSent: false,\n  skippedAt: formattedDate,\n  reason: `Client has disabled email notifications (preference: ${data.notificationPreference.gmailNotificationPreference})`,\n  // Include original data for reference\n  originalData: data\n};"
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "Log Notification Skipped",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "credentials": {
+          "serviceAccount": "={{ $env.FIREBASE_SERVICE_ACCOUNT_KEY }}"
+        },
+        "operation": "add",
+        "collection": "notifications",
+        "options": {
+          "document": {
+            "serviceId": "={{ $node[\"Prepare Notification Data\"].json.serviceData.id }}",
+            "type": "chat_interaction",
+            "sent": "={{ $json.notificationSent }}",
+            "recipient": "={{ $node[\"Prepare Notification Data\"].json.serviceData.email }}",
+            "messageId": "={{ $node[\"Prepare Notification Data\"].json.chatData.messageId }}",
+            "timestamp": "={{$json[\"firebase\"].serverTimestamp()}}",
+            "formattedTimestamp": "={{ $json.sentAt || $json.skippedAt }}"
+          }
+        }
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "Log to Firestore",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Chat Interaction Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chat Interaction Data": {
+      "main": [
+        [
+          {
+            "node": "Get Service Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Service Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare Notification Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Notification Data": {
+      "main": [
+        [
+          {
+            "node": "IF (Notifications Enabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Notifications Enabled)": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Notification Skipped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail Notification": {
+      "main": [
+        [
+          {
+            "node": "Log Notification Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Notification Success": {
+      "main": [
+        [
+          {
+            "node": "Log to Firestore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Notification Skipped": {
+      "main": [
+        [
+          {
+            "node": "Log to Firestore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SynchroAI"
+    },
+    {
+      "name": "Gmail"
+    },
+    {
+      "name": "Notifications"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-15T14:36:00.000Z",
+  "versionId": "9012ijkl-3456-78mn-opqr-stuvwxyzabcd"
+}

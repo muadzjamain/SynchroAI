@@ -1,0 +1,413 @@
+{
+  "name": "FAQ Knowledge Base File Processing (PDF & Excel)",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "manual"
+      },
+      "id": "e5b077d9-5f3d-4c1e-9d9c-0a9f8d8d7a3a",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// This function sets up the service ID as an input parameter\n// You can replace this with your actual service ID or use it as a workflow variable\nconst serviceId = $input.item.json.serviceId || \"YOUR_SERVICE_ID_HERE\";\n\nreturn {\n  serviceId\n};"
+      },
+      "id": "b8a1c3d5-7e6f-4a2b-9c3d-5e7f8a9b0c1d",
+      "name": "Set Service ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "credentials": {
+          "serviceAccount": "={{ $env.FIREBASE_SERVICE_ACCOUNT_KEY }}"
+        },
+        "operation": "get",
+        "collection": "services",
+        "documentId": "={{ $node[\"Set Service ID\"].json.serviceId }}"
+      },
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "Firestore",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and format the required fields from Firestore data\nconst serviceData = $input.item.json;\n\n// Handle optional fields with default values\nconst businessWebsite = serviceData.businessWebsite || \"\";\nconst faqKnowledgeBase = serviceData.faqFile || \"\";\n\n// Format the data for easier use in subsequent nodes\nreturn {\n  businessName: serviceData.businessName,\n  email: serviceData.email,\n  whatsappNumber: serviceData.whatsappNumber,\n  businessWebsite: businessWebsite,\n  aiRole: serviceData.aiRole,\n  faqKnowledgeBase: faqKnowledgeBase,\n  aiTone: serviceData.aiTone || \"Professional\",\n  paymentMethod: serviceData.paymentProcessing || \"Not specified\",\n  gmailNotificationPreference: serviceData.receiveEmails || \"yes\",\n  // Include the original service ID for reference\n  serviceId: $node[\"Set Service ID\"].json.serviceId,\n  // Include flags for conditional processing\n  hasWebsite: businessWebsite ? true : false,\n  hasFaqFile: faqKnowledgeBase ? true : false,\n  // Include the full original data for reference if needed\n  rawData: serviceData\n};"
+      },
+      "id": "f1e2d3c4-b5a6-7f8e-9d0c-1b2a3c4d5e6f",
+      "name": "Extract Service Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $node[\"Extract Service Parameters\"].json.hasFaqFile }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "d1c2b3a4-9e8f-7d6c-5b4a-3e2d1c0b9a8f",
+      "name": "IF (Has FAQ File)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $node[\"Extract Service Parameters\"].json.faqKnowledgeBase }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      "name": "Download FAQ File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine file type based on URL or content-type\nconst data = $input.item.json;\nconst fileUrl = $node[\"Extract Service Parameters\"].json.faqKnowledgeBase;\nconst headers = data.headers || {};\nconst contentType = headers['content-type'] || '';\n\n// Function to get file extension from URL\nfunction getFileExtension(url) {\n  try {\n    // Extract filename from URL\n    const urlObj = new URL(url);\n    const pathname = urlObj.pathname;\n    const filename = pathname.split('/').pop();\n    \n    // Get extension\n    if (filename && filename.includes('.')) {\n      return filename.split('.').pop().toLowerCase();\n    }\n  } catch (e) {\n    // URL parsing failed\n  }\n  return '';\n}\n\n// Determine file type\nlet fileType = 'unknown';\nconst extension = getFileExtension(fileUrl);\n\nif (extension === 'pdf' || contentType.includes('application/pdf')) {\n  fileType = 'pdf';\n} else if (['xls', 'xlsx', 'csv'].includes(extension) || \n           contentType.includes('excel') || \n           contentType.includes('spreadsheet') ||\n           contentType.includes('csv')) {\n  fileType = 'excel';\n}\n\nreturn {\n  ...data,\n  fileType,\n  extension,\n  contentType,\n  fileUrl,\n  // Pass through the original service data\n  ...($node[\"Extract Service Parameters\"].json)\n};"
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "Determine File Type",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"Determine File Type\"].json.fileType }}",
+              "operation": "equals",
+              "value2": "pdf"
+            }
+          ]
+        }
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "IF (PDF File)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.pdfextractor.example.com/extract",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "pdfData",
+              "value": "={{ $node[\"Determine File Type\"].json.data }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "Extract PDF Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2000,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.excelextractor.example.com/extract",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "excelData",
+              "value": "={{ $node[\"Determine File Type\"].json.data }}"
+            },
+            {
+              "name": "fileType",
+              "value": "={{ $node[\"Determine File Type\"].json.extension }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "Extract Excel Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle unknown file types or extraction errors\nconst data = $input.item.json;\n\nreturn {\n  ...data,\n  extractedText: `Unable to extract text from file of type: ${data.fileType}. Supported formats are PDF and Excel.`,\n  fileProcessingError: true\n};"
+      },
+      "id": "j1k2l3m4-n5o6-p7q8-r9s0-t1u2v3w4x5y6",
+      "name": "Handle Unsupported File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge data from all branches\nconst data = $input.item.json;\n\n// Format date according to user's preference: \"Month DD, YYYY (h:mmam/pm)\"\nconst now = new Date();\nconst hours = now.getHours();\nconst minutes = now.getMinutes();\nconst ampm = hours >= 12 ? 'pm' : 'am';\nconst formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM\nconst formattedMinutes = minutes < 10 ? '0' + minutes : minutes;\n\nconst months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];\nconst formattedDate = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()} (${formattedHours}:${formattedMinutes}${ampm})`;\n\n// If no FAQ file was processed, add placeholder values\nif (!data.hasOwnProperty('extractedText')) {\n  return {\n    ...data,\n    extractedText: null,\n    fileType: null,\n    fileProcessed: false,\n    processedAt: formattedDate\n  };\n} else {\n  // Calculate text stats if we have extracted text\n  const extractedText = data.extractedText || '';\n  const wordCount = extractedText.split(/\\s+/).filter(word => word.length > 0).length;\n  const charCount = extractedText.length;\n  \n  return {\n    ...data,\n    fileProcessed: true,\n    processedAt: formattedDate,\n    textStats: {\n      wordCount,\n      charCount\n    }\n  };\n}\n"
+      },
+      "id": "k1l2m3n4-o5p6-q7r8-s9t0-u1v2w3x4y5z6",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "l1m2n3o4-p5q6-r7s8-t9u0-v1w2x3y4z5a6",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Service ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Service ID": {
+      "main": [
+        [
+          {
+            "node": "Firestore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firestore": {
+      "main": [
+        [
+          {
+            "node": "Extract Service Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Service Parameters": {
+      "main": [
+        [
+          {
+            "node": "IF (Has FAQ File)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Has FAQ File)": {
+      "main": [
+        [
+          {
+            "node": "Download FAQ File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download FAQ File": {
+      "main": [
+        [
+          {
+            "node": "Determine File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine File Type": {
+      "main": [
+        [
+          {
+            "node": "IF (PDF File)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (PDF File)": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Excel Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Excel Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Unsupported File": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SynchroAI"
+    },
+    {
+      "name": "FileProcessing"
+    },
+    {
+      "name": "FAQ"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-15T14:21:19.000Z",
+  "versionId": "5678efgh-9012-34ij-klmn-opqrstuvwxyz"
+}

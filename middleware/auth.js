@@ -9,7 +9,7 @@ const checkAuth = (req, res, next) => {
   }
   
   // If no session, redirect to login
-  req.flash('error', 'Please log in to access this page');
+  req.flash('error', 'Please Sign in to access this page');
   return res.redirect('/auth/login');
 };
 

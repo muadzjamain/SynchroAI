@@ -1,0 +1,802 @@
+{
+  "name": "WhatsApp Message Receiver",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "getAll",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "limit": 20,
+        "filters": {
+          "fields": [
+            {
+              "field": "received",
+              "dateTime": "={{ $now }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "whatsapp-trigger",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "MMMM DD, YYYY (h:mma)",
+        "outputFieldName": "formattedDate"
+      },
+      "id": "b1c2d3e4-f5g6-h7i8-j9k0-l1m2n3o4p5q6",
+      "name": "Format Timestamp",
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 1,
+      "position": [
+        460,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "senderPhone",
+              "type": "string",
+              "parameterValue": "={{ $json.from }}"
+            },
+            {
+              "name": "recipientPhone",
+              "type": "string",
+              "parameterValue": "={{ $json.to }}"
+            },
+            {
+              "name": "messageId",
+              "type": "string",
+              "parameterValue": "={{ $json.id }}"
+            },
+            {
+              "name": "timestamp",
+              "type": "string",
+              "parameterValue": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "messageText",
+              "type": "string",
+              "parameterValue": "={{ $json.text ? $json.text.body : '' }}"
+            },
+            {
+              "name": "contactName",
+              "type": "string",
+              "parameterValue": "={{ $json.contacts && $json.contacts[0] ? $json.contacts[0].name : 'Customer' }}"
+            },
+            {
+              "name": "formattedDate",
+              "type": "string",
+              "parameterValue": "={{ $node[\"Format Timestamp\"].json.formattedDate }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1d2e3f4-g5h6-i7j8-k9l0-m1n2o3p4q5r6",
+      "name": "Extract Message Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "serviceAccountEmail": "={{ $env.FIREBASE_CLIENT_EMAIL }}",
+        "privateKey": "={{ $env.FIREBASE_PRIVATE_KEY }}",
+        "operation": "getAll",
+        "collection": "services",
+        "whereClause": {
+          "conditions": [
+            {
+              "field": "whatsappNumber",
+              "operator": "==",
+              "value": "={{ $json.recipientPhone }}"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "d1e2f3g4-h5i6-j7k8-l9m0-n1o2p3q4r5s6",
+      "name": "Get Service by WhatsApp Number",
+      "type": "n8n-nodes-base.googleCloudFirestore",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      "name": "IF Service Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "service",
+              "type": "object",
+              "parameterValue": "={{ $json[0] }}"
+            },
+            {
+              "name": "serviceId",
+              "type": "string",
+              "parameterValue": "={{ $json[0].id }}"
+            },
+            {
+              "name": "serviceType",
+              "type": "string",
+              "parameterValue": "={{ $json[0].type || \"faq\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "Set Service Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "contextData",
+              "type": "object",
+              "parameterValue": "={{ {\n  \"messageData\": {\n    \"senderId\": $json.senderPhone,\n    \"recipientId\": $json.recipientPhone,\n    \"timestamp\": $json.timestamp,\n    \"messageId\": $json.messageId,\n    \"messageText\": $json.messageText,\n    \"contactName\": $json.contactName,\n    \"formattedDate\": $node[\"Format Timestamp\"].json.formattedDate\n  },\n  \"businessInfo\": {\n    \"businessName\": $json.service.businessName,\n    \"businessWebsite\": $json.service.businessWebsite,\n    \"businessHours\": $json.service.businessHours,\n    \"whatsappNumber\": $json.service.whatsappNumber\n  },\n  \"serviceInfo\": {\n    \"serviceId\": $json.serviceId,\n    \"serviceType\": $json.serviceType,\n    \"aiRole\": $json.service.aiRole,\n    \"aiTone\": $json.service.aiTone,\n    \"systemPrompt\": $json.service.aiSystemPrompt\n  },\n  \"contentInfo\": {\n    \"faqFileInfo\": $json.service.faqFileInfo,\n    \"catalogFileInfo\": $json.service.catalogFileInfo,\n    \"faqTextContent\": $json.service.faqTextContent,\n    \"catalogTextContent\": $json.service.catalogTextContent\n  },\n  \"bankingInfo\": {\n    \"bankName\": $json.service.bankName,\n    \"accountHolderName\": $json.service.accountHolderName,\n    \"accountNumber\": $json.service.accountNumber\n  },\n  \"paymentInfo\": {\n    \"paymentMethods\": $json.service.paymentMethods,\n    \"paymentProcessing\": $json.service.paymentProcessing,\n    \"qrCodeImageInfo\": $json.service.qrCodeImageInfo\n  }\n} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "Prepare Context Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "serviceAccountEmail": "={{ $env.FIREBASE_CLIENT_EMAIL }}",
+        "privateKey": "={{ $env.FIREBASE_PRIVATE_KEY }}",
+        "operation": "create",
+        "collection": "conversations",
+        "fields": {
+          "values": [
+            {
+              "name": "serviceId",
+              "value": "={{ $json.serviceId }}"
+            },
+            {
+              "name": "senderPhone",
+              "value": "={{ $json.senderPhone }}"
+            },
+            {
+              "name": "recipientPhone",
+              "value": "={{ $json.recipientPhone }}"
+            },
+            {
+              "name": "messageText",
+              "value": "={{ $json.messageText }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "formattedDate",
+              "value": "={{ $node[\"Format Timestamp\"].json.formattedDate }}"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "contactName",
+              "value": "={{ $json.contactName }}"
+            },
+            {
+              "name": "serviceType",
+              "value": "={{ $json.serviceType }}"
+            },
+            {
+              "name": "createdAt",
+              "value": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "Log Conversation",
+      "type": "n8n-nodes-base.googleCloudFirestore",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.serviceType }}",
+              "operation": "equals",
+              "value2": "faq"
+            }
+          ]
+        }
+      },
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "IF (FAQ Service)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.serviceType }}",
+              "operation": "equals",
+              "value2": "order"
+            }
+          ]
+        }
+      },
+      "id": "j1k2l3m4-n5o6-p7q8-r9s0-t1u2v3w4x5y6",
+      "name": "IF (Order Service)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "aiPrompt",
+              "type": "string",
+              "parameterValue": "={{ $json.contextData.serviceInfo.systemPrompt + \"\\n\\nCustomer Name: \" + $json.contextData.messageData.contactName + \"\\nCustomer Message: \" + $json.contextData.messageData.messageText + \"\\n\\nPlease provide a helpful response based on the information provided.\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "k1l2m3n4-o5p6-q7r8-s9t0-u1v2w3x4y5z6",
+      "name": "Prepare AI Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        2000,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.aiPrompt }}",
+        "options": {
+          "model": "gpt-4o",
+          "temperature": 0.2,
+          "maxTokens": 1024
+        }
+      },
+      "id": "l1m2n3o4-p5q6-r7s8-t9u0-v1w2x3y4z5a6",
+      "name": "Get OpenAI Response",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 3.1,
+      "position": [
+        2220,
+        240
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "responseText",
+              "type": "string",
+              "parameterValue": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "m1n2o3p4-q5r6-s7t8-u9v0-w1x2y3z4a5b6",
+      "name": "Extract AI Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [
+        2440,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "to": "={{ $json.senderPhone }}",
+        "messageType": "text",
+        "text": "={{ $json.responseText }}",
+        "options": {}
+      },
+      "id": "n1o2p3q4-r5s6-t7u8-v9w0-x1y2z3a4b5c6",
+      "name": "Send WhatsApp Response",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        240
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// We can't trigger another workflow directly, so we'll prepare the order data here\nconst data = $input.first();\nconst contextData = data.contextData;\n\n// Generate order number\nfunction generateOrderNumber() {\n  const date = new Date();\n  const year = date.getFullYear().toString().slice(-2);\n  const month = (date.getMonth() + 1).toString().padStart(2, '0');\n  const day = date.getDate().toString().padStart(2, '0');\n  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');\n  return `ORD-${year}${month}${day}-${random}`;\n}\n\n// Extract from context data\nconst messageData = contextData.messageData;\nconst businessInfo = contextData.businessInfo;\nconst paymentInfo = contextData.paymentInfo;\n\n// Create order object\nconst order = {\n  orderId: generateOrderNumber(),\n  serviceId: data.serviceId,\n  businessName: businessInfo.businessName,\n  customerPhone: messageData.senderId,\n  customerName: messageData.contactName,\n  orderText: messageData.messageText,\n  timestamp: messageData.timestamp,\n  formattedDate: messageData.formattedDate,\n  status: \"pending\",\n  paymentStatus: \"unpaid\",\n  paymentMethods: paymentInfo.paymentMethods || [\"qr\"],\n  paymentInfo: {\n    method: \"\",\n    amount: 0,\n    timestamp: \"\",\n    transactionId: \"\"\n  },\n  qrCodeImageInfo: paymentInfo.qrCodeImageInfo || {},\n  createdAt: new Date().toISOString()\n};\n\nreturn { json: { order, contextData, serviceId: data.serviceId } };"
+      },
+      "id": "o1p2q3r4-s5t6-u7v8-w9x0-y1z2a3b4c5d6",
+      "name": "Prepare Order Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "serviceAccountEmail": "={{ $env.FIREBASE_CLIENT_EMAIL }}",
+        "privateKey": "={{ $env.FIREBASE_PRIVATE_KEY }}",
+        "operation": "create",
+        "collection": "orders",
+        "fields": {
+          "values": [
+            {
+              "name": "orderId",
+              "value": "={{ $json.order.orderId }}"
+            },
+            {
+              "name": "serviceId",
+              "value": "={{ $json.order.serviceId }}"
+            },
+            {
+              "name": "businessName",
+              "value": "={{ $json.order.businessName }}"
+            },
+            {
+              "name": "customerPhone",
+              "value": "={{ $json.order.customerPhone }}"
+            },
+            {
+              "name": "customerName",
+              "value": "={{ $json.order.customerName }}"
+            },
+            {
+              "name": "orderText",
+              "value": "={{ $json.order.orderText }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.order.timestamp }}"
+            },
+            {
+              "name": "formattedDate",
+              "value": "={{ $json.order.formattedDate }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.order.status }}"
+            },
+            {
+              "name": "paymentStatus",
+              "value": "={{ $json.order.paymentStatus }}"
+            },
+            {
+              "name": "paymentMethods",
+              "value": "={{ $json.order.paymentMethods }}"
+            },
+            {
+              "name": "paymentInfo",
+              "value": "={{ $json.order.paymentInfo }}"
+            },
+            {
+              "name": "qrCodeImageInfo",
+              "value": "={{ $json.order.qrCodeImageInfo }}"
+            },
+            {
+              "name": "createdAt",
+              "value": "={{ $json.order.createdAt }}"
+            }
+          ]
+        }
+      },
+      "id": "p1q2r3s4-t5u6-v7w8-x9y0-z1a2b3c4d5e6",
+      "name": "Save Order to Firestore",
+      "type": "n8n-nodes-base.googleCloudFirestore",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "to": "={{ $json.order.customerPhone }}",
+        "messageType": "text",
+        "text": "=Thank you for your order!\n\nOrder ID: {{ $json.order.orderId }}\nDate: {{ $json.order.formattedDate }}\n\nWe've received your order and will process it shortly. For payment, please use one of these methods: {{ $json.order.paymentMethods.join(', ') }}.\n\nThank you for choosing {{ $json.order.businessName }}!",
+        "options": {}
+      },
+      "id": "q1r2s3t4-u5v6-v7w8-x9y0-z1a2b3c4d5e6",
+      "name": "Send Order Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        440
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.contextData.businessInfo.receiveEmails }}",
+              "operation": "equals",
+              "value2": "yes"
+            }
+          ]
+        }
+      },
+      "id": "r1s2t3u4-v5w6-w7x8-y9z0-a1b2c3d4e5f6",
+      "name": "IF (Email Notifications Enabled)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2880,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.NOTIFICATION_EMAIL }}",
+        "toEmail": "={{ $env.ADMIN_EMAIL }}",
+        "subject": "=New Order Received: {{ $json.order.orderId }}",
+        "text": "=A new order has been received via WhatsApp.\n\nOrder Details:\nOrder ID: {{ $json.order.orderId }}\nBusiness: {{ $json.order.businessName }}\nCustomer: {{ $json.order.customerName }}\nPhone: {{ $json.order.customerPhone }}\nDate: {{ $json.order.formattedDate }}\n\nOrder Message:\n{{ $json.order.orderText }}\n\nPayment Status: {{ $json.order.paymentStatus }}\n\nPlease log in to your SynchroAI dashboard to process this order."
+      },
+      "id": "s1t2u3v4-w5x6-x7y8-z9a0-b1c2d3e4f5g6",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        300
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-credentials",
+          "name": "SMTP Account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "t1u2v3w4-x5y6-z7a8-b9c0-d1e2f3g4h5i6",
+      "name": "No-Op Node",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        440
+      ]
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Timestamp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Message Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Timestamp": {
+      "main": [
+        [
+          {
+            "node": "Extract Message Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message Data": {
+      "main": [
+        [
+          {
+            "node": "Get Service by WhatsApp Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Service by WhatsApp Number": {
+      "main": [
+        [
+          {
+            "node": "IF Service Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Service Found": {
+      "main": [
+        [
+          {
+            "node": "Set Service Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Set Service Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Context Data": {
+      "main": [
+        [
+          {
+            "node": "Log Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Conversation": {
+      "main": [
+        [
+          {
+            "node": "IF (FAQ Service)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (FAQ Service)": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF (Order Service)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Order Service)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Prepare AI Request": {
+      "main": [
+        [
+          {
+            "node": "Get OpenAI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get OpenAI Response": {
+      "main": [
+        [
+          {
+            "node": "Extract AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract AI Response": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Order Data": {
+      "main": [
+        [
+          {
+            "node": "Save Order to Firestore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Order to Firestore": {
+      "main": [
+        [
+          {
+            "node": "Send Order Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Order Confirmation": {
+      "main": [
+        [
+          {
+            "node": "IF (Email Notifications Enabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Email Notifications Enabled)": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No-Op Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SynchroAI"
+    },
+    {
+      "name": "WhatsApp"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-16T05:26:00.000Z",
+  "versionId": "5678ijkl-9012-34mn-opqr-stuvwxyzabcd"
+}

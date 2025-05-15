@@ -1,0 +1,312 @@
+{
+  "name": "AI Model Integration (Gemini)",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "manual"
+      },
+      "id": "e5b077d9-5f3d-4c1e-9d9c-0a9f8d8d7a3a",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// This function sets up the service ID as an input parameter\n// You can replace this with your actual service ID or use it as a workflow variable\nconst serviceId = $input.item.json.serviceId || \"YOUR_SERVICE_ID_HERE\";\n\nreturn {\n  serviceId\n};"
+      },
+      "id": "b8a1c3d5-7e6f-4a2b-9c3d-5e7f8a9b0c1d",
+      "name": "Set Service ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": "COMBINED_KNOWLEDGE_BASE_WORKFLOW_ID"
+      },
+      "id": "c1d2e3f4-g5h6-i7j8-k9l0-m1n2o3p4q5r6",
+      "name": "Get Combined Knowledge Base",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare data for AI model\nconst data = $input.item.json;\n\n// Format date according to user's preference: \"Month DD, YYYY (h:mmam/pm)\"\nconst now = new Date();\nconst hours = now.getHours();\nconst minutes = now.getMinutes();\nconst ampm = hours >= 12 ? 'pm' : 'am';\nconst formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM\nconst formattedMinutes = minutes < 10 ? '0' + minutes : minutes;\n\nconst months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];\nconst formattedDate = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()} (${formattedHours}:${formattedMinutes}${ampm})`;\n\n// Construct system prompt for the AI model\nconst systemPrompt = `You are an AI assistant for ${data.businessName}. \n\nYour role is: ${data.aiRole || 'Customer Service Assistant'}.\n\nYou should respond in a ${data.aiTone || 'Professional'} tone.\n\nToday's date is ${formattedDate}.\n\nYou have access to the following knowledge base to help answer customer questions:\n\n${data.combinedKnowledgeBase}\n\nWhen responding to customers:\n1. Be concise and helpful\n2. Only provide information that is contained in the knowledge base\n3. If you don't know the answer, politely say so and offer to connect the customer with a human representative\n4. Never make up information\n5. Format WhatsApp messages appropriately with short paragraphs and clear structure\n6. Use emojis sparingly and professionally\n7. Always maintain the specified tone in your responses`;\n\n// Prepare model parameters\nconst modelParameters = {\n  model: \"gemini-pro\", // or another appropriate model\n  temperature: 0.2, // Lower temperature for more factual responses\n  maxOutputTokens: 1024, // Reasonable limit for WhatsApp messages\n  topK: 40,\n  topP: 0.95\n};\n\nreturn {\n  serviceId: data.serviceId,\n  businessName: data.businessName,\n  systemPrompt: systemPrompt,\n  modelParameters: modelParameters,\n  knowledgeBaseStats: data.stats || {},\n  generatedAt: formattedDate,\n  // Include original data for reference\n  originalData: data\n};"
+      },
+      "id": "d1e2f3g4-h5i6-j7k8-l9m0-n1o2p3q4r5s6",
+      "name": "Prepare AI Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={{$env.GEMINI_API_KEY}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "contents",
+              "value": "=[{\"role\":\"user\",\"parts\":[{\"text\":\"Test the AI assistant with this query: What products do you offer?\"}]}]"
+            },
+            {
+              "name": "systemInstruction",
+              "value": "={\"parts\":[{\"text\":\"{{$node[\"Prepare AI Context\"].json.systemPrompt}}\"}]}"
+            },
+            {
+              "name": "generationConfig",
+              "value": "={{$node[\"Prepare AI Context\"].json.modelParameters}}"
+            }
+          ]
+        },
+        "additionalOptions": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      "name": "Test Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process the Gemini API response\nconst data = $input.item.json;\nconst apiResponse = data.body;\n\n// Extract the generated text from the response\nlet generatedText = '';\nlet success = false;\nlet error = null;\n\ntry {\n  if (apiResponse && \n      apiResponse.candidates && \n      apiResponse.candidates.length > 0 && \n      apiResponse.candidates[0].content && \n      apiResponse.candidates[0].content.parts && \n      apiResponse.candidates[0].content.parts.length > 0) {\n    \n    generatedText = apiResponse.candidates[0].content.parts[0].text;\n    success = true;\n  } else {\n    error = 'Invalid or empty response structure';\n  }\n} catch (e) {\n  error = `Error parsing response: ${e.message}`;\n}\n\n// Format date according to user's preference: \"Month DD, YYYY (h:mmam/pm)\"\nconst now = new Date();\nconst hours = now.getHours();\nconst minutes = now.getMinutes();\nconst ampm = hours >= 12 ? 'pm' : 'am';\nconst formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM\nconst formattedMinutes = minutes < 10 ? '0' + minutes : minutes;\n\nconst months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];\nconst formattedDate = `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()} (${formattedHours}:${formattedMinutes}${ampm})`;\n\nreturn {\n  serviceId: $node[\"Prepare AI Context\"].json.serviceId,\n  businessName: $node[\"Prepare AI Context\"].json.businessName,\n  testResponse: generatedText,\n  success,\n  error,\n  testedAt: formattedDate,\n  // Include the system prompt for reference\n  systemPrompt: $node[\"Prepare AI Context\"].json.systemPrompt,\n  // Include the raw API response for debugging\n  rawResponse: apiResponse\n};"
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "Process API Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "credentials": {
+          "serviceAccount": "={{ $env.FIREBASE_SERVICE_ACCOUNT_KEY }}"
+        },
+        "operation": "update",
+        "collection": "services",
+        "documentId": "={{ $node[\"Process API Response\"].json.serviceId }}",
+        "options": {
+          "updateFields": {
+            "aiSystemPrompt": "={{ $node[\"Process API Response\"].json.systemPrompt }}",
+            "aiTestResponse": "={{ $node[\"Process API Response\"].json.testResponse }}",
+            "aiTestSuccess": "={{ $node[\"Process API Response\"].json.success }}",
+            "aiTestError": "={{ $node[\"Process API Response\"].json.error }}",
+            "aiTestedAt": "={{$json[\"firebase\"].serverTimestamp()}}",
+            "aiTestedAtFormatted": "={{ $node[\"Process API Response\"].json.testedAt }}"
+          }
+        }
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "Update Service with AI Context",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $node[\"Get Combined Knowledge Base\"].json.gmailNotificationPreference }}",
+              "operation": "equals",
+              "value2": "yes"
+            }
+          ]
+        }
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "IF (Email Notifications Enabled)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.NOTIFICATION_EMAIL}}",
+        "toEmail": "={{ $node[\"Get Combined Knowledge Base\"].json.email }}",
+        "subject": "=AI Assistant Ready - {{ $node[\"Process API Response\"].json.businessName }} - {{ $node[\"Process API Response\"].json.testedAt }}",
+        "text": "=Your SynchroAI assistant has been configured and is ready to use.\n\nBusiness: {{ $node[\"Process API Response\"].json.businessName }}\nTested: {{ $node[\"Process API Response\"].json.testedAt }}\n\nWe've tested your AI assistant with a sample question and it responded successfully. Your assistant is now ready to handle customer inquiries via WhatsApp.\n\nTest Question: \"What products do you offer?\"\n\nAI Response:\n\"{{ $node[\"Process API Response\"].json.testResponse }}\"\n\nYour knowledge base includes:\n{{ $node[\"Get Combined Knowledge Base\"].json.sources.website ? '- Website content' : '' }}\n{{ $node[\"Get Combined Knowledge Base\"].json.sources.faq ? '- FAQ knowledge base file' : '' }}\n\nTotal knowledge base size: {{ $node[\"Get Combined Knowledge Base\"].json.stats.totalWordCount }} words\n\nThis is an automated notification from SynchroAI.",
+        "options": {}
+      },
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "j1k2l3m4-n5o6-p7q8-r9s0-t1u2v3w4x5y6",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Service ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Service ID": {
+      "main": [
+        [
+          {
+            "node": "Get Combined Knowledge Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Combined Knowledge Base": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Context": {
+      "main": [
+        [
+          {
+            "node": "Test Gemini API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Gemini API": {
+      "main": [
+        [
+          {
+            "node": "Process API Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process API Response": {
+      "main": [
+        [
+          {
+            "node": "Update Service with AI Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Service with AI Context": {
+      "main": [
+        [
+          {
+            "node": "IF (Email Notifications Enabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Email Notifications Enabled)": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SynchroAI"
+    },
+    {
+      "name": "AI"
+    },
+    {
+      "name": "Gemini"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-15T14:31:28.000Z",
+  "versionId": "7890ghij-1234-56kl-mnop-qrstuvwxyzab"
+}

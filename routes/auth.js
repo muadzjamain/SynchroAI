@@ -9,9 +9,9 @@ const {
   signInWithPopup
 } = require('firebase/auth');
 
-// Login page
+// Sign In page
 router.get('/login', (req, res) => {
-  res.render('auth/login', { title: 'Login - SynchroAI' });
+  res.render('auth/login', { title: 'Sign In - SynchroAI' });
 });
 
 // Register page
@@ -19,7 +19,7 @@ router.get('/register', (req, res) => {
   res.render('auth/register', { title: 'Register - SynchroAI' });
 });
 
-// Handle login
+// Handle sign in
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   
@@ -37,7 +37,7 @@ router.post('/login', async (req, res) => {
     req.flash('success', 'Successfully logged in!');
     res.redirect('/profile');
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Sign in error:', error);
     req.flash('error', 'Invalid email or password');
     res.redirect('/auth/login');
   }

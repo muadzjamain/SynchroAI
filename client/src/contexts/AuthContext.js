@@ -7,7 +7,8 @@ import {
   signOut as firebaseSignOut,
   GoogleAuthProvider,
   signInWithPopup,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail
 } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeApp } from 'firebase/app';
@@ -138,6 +139,19 @@ export function AuthProvider({ children }) {
     }
   };
   
+  // Send password reset email
+  const sendPasswordResetEmail = async (email) => {
+    setError('');
+    try {
+      const auth = getAuth();
+      await firebaseSendPasswordResetEmail(auth, email);
+      return true;
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    }
+  };
+  
   const value = {
     currentUser,
     firebaseInitialized,
@@ -146,7 +160,8 @@ export function AuthProvider({ children }) {
     signup,
     login,
     loginWithGoogle,
-    logout
+    logout,
+    sendPasswordResetEmail
   };
   
   return (

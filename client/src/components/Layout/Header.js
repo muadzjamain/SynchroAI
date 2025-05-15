@@ -179,7 +179,7 @@ const Header = () => {
         ) : (
           <Box>
             <Button color="inherit" component={RouterLink} to="/login" sx={{ mr: 1 }}>
-              Login
+              Sign In
             </Button>
             <Button variant="contained" color="secondary" component={RouterLink} to="/signup">
               Sign Up
@@ -252,7 +252,7 @@ const Header = () => {
                   <ListItemIcon>
                     <PersonIcon />
                   </ListItemIcon>
-                  <ListItemText primary="Login" />
+                  <ListItemText primary="Sign In" />
                 </ListItem>
                 <ListItem button component={RouterLink} to="/signup">
                   <ListItemIcon>

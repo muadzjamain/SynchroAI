@@ -126,7 +126,7 @@ const Home = () => {
                   component={RouterLink}
                   to={currentUser ? "/form-whatsapp-faq" : "/login"}
                 >
-                  {currentUser ? "Get Started" : "Login to Order"}
+                  {currentUser ? "Get Started" : "Sign In to Order"}
                 </Button>
               </CardContent>
             </Card>
@@ -171,7 +171,7 @@ const Home = () => {
                   component={RouterLink}
                   to={currentUser ? "/form-whatsapp-order" : "/login"}
                 >
-                  {currentUser ? "Get Started" : "Login to Order"}
+                  {currentUser ? "Get Started" : "Sign In to Order"}
                 </Button>
               </CardContent>
             </Card>
@@ -216,7 +216,7 @@ const Home = () => {
                   component={RouterLink}
                   to={currentUser ? "/form-custom-ai" : "/login"}
                 >
-                  {currentUser ? "Get Started" : "Login to Order"}
+                  {currentUser ? "Get Started" : "Sign In to Order"}
                 </Button>
               </CardContent>
             </Card>

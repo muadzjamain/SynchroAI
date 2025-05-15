@@ -1,0 +1,138 @@
+{
+  "name": "Firestore Service Data Extraction",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "manual"
+      },
+      "id": "e5b077d9-5f3d-4c1e-9d9c-0a9f8d8d7a3a",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// This function sets up the service ID as an input parameter\n// You can replace this with your actual service ID or use it as a workflow variable\nconst serviceId = $input.item.json.serviceId || \"YOUR_SERVICE_ID_HERE\";\n\nreturn {\n  serviceId\n};"
+      },
+      "id": "b8a1c3d5-7e6f-4a2b-9c3d-5e7f8a9b0c1d",
+      "name": "Set Service ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "projectId": "={{ $env.FIREBASE_PROJECT_ID }}",
+        "credentials": {
+          "serviceAccount": "={{ $env.FIREBASE_SERVICE_ACCOUNT_KEY }}"
+        },
+        "operation": "get",
+        "collection": "services",
+        "documentId": "={{ $node[\"Set Service ID\"].json.serviceId }}"
+      },
+      "id": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "Firestore",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and format the required fields from Firestore data\nconst serviceData = $input.item.json;\n\n// Handle optional fields with default values\nconst businessWebsite = serviceData.businessWebsite || \"Not provided\";\n\n// Format the data for easier use in subsequent nodes\nreturn {\n  businessName: serviceData.businessName,\n  email: serviceData.email,\n  whatsappNumber: serviceData.whatsappNumber,\n  businessWebsite: businessWebsite,\n  aiRole: serviceData.aiRole,\n  faqKnowledgeBase: serviceData.faqFile, // URL to the stored file\n  aiTone: serviceData.aiTone || \"Professional\",\n  paymentMethod: serviceData.paymentProcessing || \"Not specified\",\n  gmailNotificationPreference: serviceData.receiveEmails || \"yes\",\n  // Include the original service ID for reference\n  serviceId: $node[\"Set Service ID\"].json.serviceId,\n  // Include the full original data for reference if needed\n  rawData: serviceData\n};"
+      },
+      "id": "f1e2d3c4-b5a6-7f8e-9d0c-1b2a3c4d5e6f",
+      "name": "Extract Service Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d1c2b3a4-9e8f-7d6c-5b4a-3e2d1c0b9a8f",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Service ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Service ID": {
+      "main": [
+        [
+          {
+            "node": "Firestore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firestore": {
+      "main": [
+        [
+          {
+            "node": "Extract Service Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Service Parameters": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "SynchroAI"
+    },
+    {
+      "name": "Firestore"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-05-15T14:16:28.000Z",
+  "versionId": "1234abcd-5678-90ef-ghij-klmnopqrstuv"
+}
