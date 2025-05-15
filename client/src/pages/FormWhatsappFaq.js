@@ -22,6 +22,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
 
 const FormWhatsappFaq = () => {
@@ -41,6 +42,7 @@ const FormWhatsappFaq = () => {
     businessWebsite: '',
     aiRole: '',
     aiTone: 'Professional',
+    catalogFile: null,
     faqFile: null,
     businessHours: '',
     paymentProcessing: 'stripe',
@@ -121,18 +123,33 @@ const FormWhatsappFaq = () => {
       return;
     }
     
-    // Validate file upload
+    // Validate Product/Service Catalogue upload
+    if (!formData.catalogFile) {
+      setError('Please upload your Product/Service Catalogue');
+      return;
+    }
+    
+    // Validate FAQ file upload
     if (!formData.faqFile) {
       setError('Please upload your FAQ Knowledge Base file');
       return;
     }
     
-    // Validate file type
+    // Validate FAQ file type
     const allowedFileTypes = ['.pdf', '.xls', '.xlsx', '.csv'];
-    const fileExtension = formData.faqFile.name.substring(formData.faqFile.name.lastIndexOf('.'));
-    if (!allowedFileTypes.includes(fileExtension.toLowerCase())) {
+    const faqFileExtension = formData.faqFile.name.substring(formData.faqFile.name.lastIndexOf('.'));
+    if (!allowedFileTypes.includes(faqFileExtension.toLowerCase())) {
       setError('Please upload only PDF or Excel files for FAQ Knowledge Base');
       return;
+    }
+    
+    // Validate Product/Service Catalogue file type if provided
+    if (formData.catalogFile) {
+      const catalogFileExtension = formData.catalogFile.name.substring(formData.catalogFile.name.lastIndexOf('.'));
+      if (!allowedFileTypes.includes(catalogFileExtension.toLowerCase())) {
+        setError('Please upload only PDF or Excel files for Product/Service Catalogue');
+        return;
+      }
     }
     
     setLoading(true);
@@ -141,23 +158,72 @@ const FormWhatsappFaq = () => {
     
     try {
       const db = getFirestore();
+      const storage = getStorage();
+      
+      // Create a copy of form data without the file objects
       const serviceData = {
-        ...formData,
+        businessName: formData.businessName,
+        email: formData.email,
+        whatsappNumber: formData.whatsappNumber,
+        businessWebsite: formData.businessWebsite,
+        aiRole: formData.aiRole,
+        aiTone: formData.aiTone,
+        businessHours: formData.businessHours,
+        paymentProcessing: formData.paymentProcessing,
+        receiveEmails: formData.receiveEmails,
         userId: currentUser.uid,
         type: 'whatsapp-faq',
         status: isEditing ? undefined : 'active', // Keep existing status if editing
         updatedAt: new Date()
       };
       
+      let docRef;
+      if (isEditing) {
+        docRef = doc(db, 'services', serviceId);
+      } else {
+        docRef = doc(collection(db, 'services'));
+        serviceData.createdAt = new Date();
+      }
+      
+      // Upload catalog file to Firebase Storage
+      if (formData.catalogFile) {
+        const catalogFileRef = ref(storage, `services/${docRef.id}/catalog-${Date.now()}-${formData.catalogFile.name}`);
+        await uploadBytes(catalogFileRef, formData.catalogFile);
+        const catalogFileUrl = await getDownloadURL(catalogFileRef);
+        
+        // Store file metadata instead of the File object
+        serviceData.catalogFileInfo = {
+          name: formData.catalogFile.name,
+          type: formData.catalogFile.type,
+          size: formData.catalogFile.size,
+          url: catalogFileUrl,
+          uploadedAt: new Date()
+        };
+      }
+      
+      // Upload FAQ file to Firebase Storage
+      if (formData.faqFile) {
+        const faqFileRef = ref(storage, `services/${docRef.id}/faq-${Date.now()}-${formData.faqFile.name}`);
+        await uploadBytes(faqFileRef, formData.faqFile);
+        const faqFileUrl = await getDownloadURL(faqFileRef);
+        
+        // Store file metadata instead of the File object
+        serviceData.faqFileInfo = {
+          name: formData.faqFile.name,
+          type: formData.faqFile.type,
+          size: formData.faqFile.size,
+          url: faqFileUrl,
+          uploadedAt: new Date()
+        };
+      }
+      
       if (isEditing) {
         // Update existing service
-        await updateDoc(doc(db, 'services', serviceId), serviceData);
+        await updateDoc(docRef, serviceData);
         setSuccess('Service updated successfully');
       } else {
         // Create new service
-        const newServiceRef = doc(collection(db, 'services'));
-        serviceData.createdAt = new Date();
-        await setDoc(newServiceRef, serviceData);
+        await setDoc(docRef, serviceData);
         setSuccess('Service created successfully');
       }
       
@@ -300,7 +366,36 @@ const FormWhatsappFaq = () => {
               </FormControl>
             </Grid>
             
-            {/* FAQ Knowledge Base */}
+            {/* Product/Service Catalogue Upload */}
+            <Grid item xs={12}>
+              <Button
+                variant="outlined"
+                component="label"
+                fullWidth
+                sx={{ py: 1.5, textAlign: 'left', justifyContent: 'flex-start' }}
+                disabled={loading}
+              >
+                Product/Service Catalogue (PDF or Excel)
+                <input
+                  type="file"
+                  hidden
+                  accept=".pdf,.xls,.xlsx,.csv"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setFormData(prev => ({
+                        ...prev,
+                        catalogFile: e.target.files[0]
+                      }));
+                    }
+                  }}
+                />
+              </Button>
+              <Typography variant="caption" color="text.secondary">
+                {formData.catalogFile ? `Selected file: ${formData.catalogFile.name}` : 'Required: Upload your product/service catalogue'}
+              </Typography>
+            </Grid>
+            
+            {/* FAQ Knowledge Base Upload */}
             <Grid item xs={12}>
               <Button
                 variant="outlined"

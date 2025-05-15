@@ -21,6 +21,7 @@ import {
   FormHelperText
 } from '@mui/material';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../contexts/AuthContext';
 
 const FormWhatsappOrder = () => {
@@ -204,23 +205,92 @@ const FormWhatsappOrder = () => {
     
     try {
       const db = getFirestore();
+      const storage = getStorage();
+      
+      // Create a copy of form data without the file objects
       const serviceData = {
-        ...formData,
+        businessName: formData.businessName,
+        email: formData.email,
+        whatsappNumber: formData.whatsappNumber,
+        businessWebsite: formData.businessWebsite,
+        aiRole: formData.aiRole,
+        aiTone: formData.aiTone,
+        businessHours: formData.businessHours,
+        paymentProcessing: formData.paymentProcessing,
+        paymentMethods: formData.paymentMethods,
+        receiveEmails: formData.receiveEmails,
+        bankName: formData.bankName,
+        accountNumber: formData.accountNumber,
+        accountHolderName: formData.accountHolderName,
         userId: currentUser.uid,
         type: 'whatsapp-order',
         status: isEditing ? undefined : 'active', // Keep existing status if editing
         updatedAt: new Date()
       };
       
+      let docRef;
+      if (isEditing) {
+        docRef = doc(db, 'services', serviceId);
+      } else {
+        docRef = doc(collection(db, 'services'));
+        serviceData.createdAt = new Date();
+      }
+      
+      // Upload catalog file to Firebase Storage
+      if (formData.catalogFile) {
+        const catalogFileRef = ref(storage, `services/${docRef.id}/catalog-${Date.now()}-${formData.catalogFile.name}`);
+        await uploadBytes(catalogFileRef, formData.catalogFile);
+        const catalogFileUrl = await getDownloadURL(catalogFileRef);
+        
+        // Store file metadata instead of the File object
+        serviceData.catalogFileInfo = {
+          name: formData.catalogFile.name,
+          type: formData.catalogFile.type,
+          size: formData.catalogFile.size,
+          url: catalogFileUrl,
+          uploadedAt: new Date()
+        };
+      }
+      
+      // Upload FAQ file to Firebase Storage
+      if (formData.faqFile) {
+        const faqFileRef = ref(storage, `services/${docRef.id}/faq-${Date.now()}-${formData.faqFile.name}`);
+        await uploadBytes(faqFileRef, formData.faqFile);
+        const faqFileUrl = await getDownloadURL(faqFileRef);
+        
+        // Store file metadata instead of the File object
+        serviceData.faqFileInfo = {
+          name: formData.faqFile.name,
+          type: formData.faqFile.type,
+          size: formData.faqFile.size,
+          url: faqFileUrl,
+          uploadedAt: new Date()
+        };
+      }
+      
+      // Upload QR code image to Firebase Storage if provided
+      if (formData.qrCodeImage) {
+        const qrCodeRef = ref(storage, `services/${docRef.id}/qrcode-${Date.now()}-${formData.qrCodeImage.name}`);
+        await uploadBytes(qrCodeRef, formData.qrCodeImage);
+        const qrCodeUrl = await getDownloadURL(qrCodeRef);
+        
+        // Store file metadata instead of the File object
+        serviceData.qrCodeImageInfo = {
+          name: formData.qrCodeImage.name,
+          type: formData.qrCodeImage.type,
+          size: formData.qrCodeImage.size,
+          url: qrCodeUrl,
+          uploadedAt: new Date()
+        };
+      }
+      
       if (isEditing) {
         // Update existing service
-        await updateDoc(doc(db, 'services', serviceId), serviceData);
+        await updateDoc(docRef, serviceData);
         setSuccess('Service updated successfully');
       } else {
         // Create new service
-        const newServiceRef = doc(collection(db, 'services'));
-        serviceData.createdAt = new Date();
-        await setDoc(newServiceRef, serviceData);
+        await setDoc(docRef, serviceData);
         setSuccess('Service created successfully');
       }
       
