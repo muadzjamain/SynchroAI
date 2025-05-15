@@ -13,6 +13,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+  <!-- Environment Configuration -->
+  <script src="/js/env-config.js"></script>
   <style>
     body {
       font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -213,6 +215,9 @@
           <li class="nav-item auth-user" style="display: none;">
             <a class="nav-link" href="profile.html">My Services</a>
           </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="wallet.html">My Wallet <span class="ms-1 badge bg-light text-primary" id="navWalletBalance">$0.00</span></a>
+          </li>
         </ul>
         <!-- Guest Navigation -->
         <div class="auth-guest" style="display: block;">
@@ -225,7 +230,8 @@
             <i class="bi bi-person-circle user-icon"></i><span>User</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <li><a class="dropdown-item" href="profile.html">My Services</a></li>
+            <li><a class="dropdown-item" href="wallet.html">My Wallet</a></li>
+            <li><a class="dropdown-item" href="profile-settings.html">Account Settings</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
           </ul>
@@ -244,64 +250,138 @@
           <h2 class="form-section-title">Business Information</h2>
           <div class="mb-3">
             <label for="businessName" class="form-label">Business Name</label>
-            <input type="text" class="form-control" id="businessName" required>
+            <input type="text" class="form-control" id="businessName" placeholder="Your business name" required>
+          </div>
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" placeholder="your-email@example.com" required>
           </div>
           <div class="mb-3">
             <label for="whatsappNumber" class="form-label">WhatsApp Business Number</label>
             <input type="tel" class="form-control" id="whatsappNumber" placeholder="+1234567890" required>
             <div class="form-text">Include country code (e.g., +1 for US)</div>
           </div>
+          <div class="mb-3">
+            <label for="businessWebsite" class="form-label">Business Website / Online Store Link</label>
+            <input type="url" class="form-control" id="businessWebsite" placeholder="https://your-website.com or https://shopee.com/yourshop">
+            <div class="form-text">E.g., Shopee, Alibaba, or your official website (Optional)</div>
+          </div>
         </div>
         
         <div class="form-section">
-          <h2 class="form-section-title">Order Processing</h2>
+          <h2 class="form-section-title">AI Agent Configuration</h2>
           
-          <div class="mb-4">
-            <label class="form-label">Accepted Payment Methods</label>
-            <div class="payment-methods">
-              <div class="payment-method-item">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="paymentMethod" id="bankTransfer" value="bankTransfer">
-                  <label class="form-check-label" for="bankTransfer">
-                    Bank Transfer
-                  </label>
+          <div class="mb-3">
+            <label for="agentRole" class="form-label">Role of the AI Agent</label>
+            <input type="text" class="form-control" id="agentRole" placeholder="restaurant owner / gadget seller / print shop owner / etc" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="agentTone" class="form-label">Tone</label>
+            <select class="form-select" id="agentTone" required>
+              <option value="" selected disabled>Select a tone for your AI agent</option>
+              <option value="formal">Formal</option>
+              <option value="cheerful">Cheerful</option>
+              <option value="normal">Normal</option>
+              <option value="professional">Professional</option>
+              <option value="friendly">Friendly</option>
+              <option value="casual">Casual</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label for="productCatalogue" class="form-label">Product / Service Catalogue</label>
+            <input type="file" class="form-control" id="productCatalogue" accept=".pdf,.xls,.xlsx,.csv">
+            <div class="form-text">Upload your Excel or PDF file containing your products or services</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="faqKnowledgeBase" class="form-label">FAQ Knowledge Base</label>
+            <input type="file" class="form-control" id="faqKnowledgeBase" accept=".pdf,.xls,.xlsx,.csv">
+            <div class="form-text">Upload your Excel or PDF file containing FAQs for your business</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="businessHours" class="form-label">Business Hours</label>
+            <textarea class="form-control" id="businessHours" rows="3" placeholder="Monday-Friday: 9am-5pm, Saturday: 10am-3pm, Sunday: Closed"></textarea>
+            <div class="form-text">The AI will inform customers when your business is available (Optional)</div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Agent Payment Processing</label>
+            <div class="form-text mb-2">Choose how this agent will process payments for your service</div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="agentPaymentProcessing" id="stripePayment" value="stripe" checked>
+              <label class="form-check-label" for="stripePayment">
+                Use Stripe (Process payments directly via credit card)
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="agentPaymentProcessing" id="webWallet" value="webWallet">
+              <label class="form-check-label" for="webWallet">
+                Use SynchroAI Wallet (Customers will pay using their wallet balance)
+              </label>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Payment Methods to Offer Customers</label>
+            <div class="mt-2">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="paymentMethods" id="paymentQR" value="qr">
+                <label class="form-check-label" for="paymentQR">
+                  QR Code Payment
+                </label>
+                <div id="qrUploadContainer" class="ms-4 mt-2 d-none">
+                  <label for="qrCodeFile" class="form-label">Upload QR Code Image</label>
+                  <input type="file" class="form-control" id="qrCodeFile" accept="image/*">
                 </div>
               </div>
-              <div class="payment-method-item">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="paymentMethod" id="cashOnDelivery" value="cashOnDelivery">
-                  <label class="form-check-label" for="cashOnDelivery">
-                    Cash on Delivery
-                  </label>
+              
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="paymentMethods" id="paymentBank" value="bank">
+                <label class="form-check-label" for="paymentBank">
+                  Bank Transfer
+                </label>
+                <div id="bankDetailsContainer" class="ms-4 mt-2 d-none">
+                  <div class="row g-2">
+                    <div class="col-md-6">
+                      <label for="bankName" class="form-label">Bank Name</label>
+                      <input type="text" class="form-control" id="bankName" placeholder="e.g., Bank Central Asia">
+                    </div>
+                    <div class="col-md-6">
+                      <label for="bankAccountNumber" class="form-label">Account Number</label>
+                      <input type="text" class="form-control" id="bankAccountNumber" placeholder="e.g., 1234567890">
+                    </div>
+                    <div class="col-12">
+                      <label for="bankAccountName" class="form-label">Account Holder Name</label>
+                      <input type="text" class="form-control" id="bankAccountName" placeholder="e.g., PT Your Company">
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="payment-method-item">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="paymentMethod" id="paypal" value="paypal">
-                  <label class="form-check-label" for="paypal">
-                    PayPal
-                  </label>
-                </div>
-              </div>
-              <div class="payment-method-item">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="paymentMethod" id="creditCard" value="creditCard">
-                  <label class="form-check-label" for="creditCard">
-                    Credit Card
-                  </label>
-                </div>
+              
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" name="paymentMethods" id="paymentCash" value="cash">
+                <label class="form-check-label" for="paymentCash">
+                  Cash on Delivery
+                </label>
               </div>
             </div>
           </div>
           
           <div class="mb-3">
-            <label for="paymentVerification" class="form-label">Payment Verification Process</label>
-            <textarea class="form-control" id="paymentVerification" rows="3" placeholder="Describe how you verify payments (e.g., receipt upload, confirmation codes)" required></textarea>
-          </div>
-          
-          <div class="mb-3">
-            <label for="orderTracking" class="form-label">Order Tracking Information</label>
-            <textarea class="form-control" id="orderTracking" rows="3" placeholder="Describe how customers can track their orders" required></textarea>
+            <label class="form-label">Receive Email for Each Order?</label>
+            <div class="mt-2">
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="receiveEmails" id="receiveEmailsYes" value="yes" checked>
+                <label class="form-check-label" for="receiveEmailsYes">Yes</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="receiveEmails" id="receiveEmailsNo" value="no">
+                <label class="form-check-label" for="receiveEmailsNo">No</label>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -338,5 +418,138 @@
   
   <!-- Custom JavaScript -->
   <script src="js/main.js"></script>
+  <script src="js/wallet-balance.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // The main.js script will handle authentication state through setupAuthObserver
+      // We just need to make sure the email field is filled when a user is authenticated
+      firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+          // Set email field if available
+          const emailInput = document.getElementById('email');
+          if (emailInput && !emailInput.value) {
+            emailInput.value = user.email || '';
+          }
+        }
+      });
+    });
+    
+    // Toggle payment method details
+    document.getElementById('paymentQR').addEventListener('change', function() {
+      const qrUploadContainer = document.getElementById('qrUploadContainer');
+      qrUploadContainer.classList.toggle('d-none', !this.checked);
+      
+      // If QR upload is shown, make the file input required
+      const qrCodeFile = document.getElementById('qrCodeFile');
+      qrCodeFile.required = this.checked;
+    });
+    
+    document.getElementById('paymentBank').addEventListener('change', function() {
+      const bankDetailsContainer = document.getElementById('bankDetailsContainer');
+      bankDetailsContainer.classList.toggle('d-none', !this.checked);
+      
+      // If bank details are shown, make the inputs required
+      const bankName = document.getElementById('bankName');
+      const bankAccountNumber = document.getElementById('bankAccountNumber');
+      const bankAccountName = document.getElementById('bankAccountName');
+      
+      bankName.required = this.checked;
+      bankAccountNumber.required = this.checked;
+      bankAccountName.required = this.checked;
+    });
+    
+    // Handle form submission
+    document.getElementById('whatsapp-order-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Get form values
+      const businessName = document.getElementById('businessName').value;
+      const email = document.getElementById('email').value;
+      const whatsappNumber = document.getElementById('whatsappNumber').value;
+      const businessWebsite = document.getElementById('businessWebsite').value || null;
+      const agentRole = document.getElementById('agentRole').value;
+      const agentTone = document.getElementById('agentTone').value;
+      const businessHours = document.getElementById('businessHours').value || null;
+      const receiveEmails = document.querySelector('input[name="receiveEmails"]:checked').value;
+      
+      // Get selected payment methods
+      const paymentMethods = [];
+      document.querySelectorAll('input[name="paymentMethods"]:checked').forEach(checkbox => {
+        paymentMethods.push(checkbox.value);
+      });
+      
+      // Get payment method details
+      let qrCodeFile = null;
+      let bankDetails = null;
+      
+      // QR Code payment details
+      if (document.getElementById('paymentQR').checked) {
+        qrCodeFile = document.getElementById('qrCodeFile').files[0];
+      }
+      
+      // Bank transfer details
+      if (document.getElementById('paymentBank').checked) {
+        bankDetails = {
+          bankName: document.getElementById('bankName').value,
+          accountNumber: document.getElementById('bankAccountNumber').value,
+          accountName: document.getElementById('bankAccountName').value
+        };
+      }
+      
+      // Handle file uploads
+      const productCatalogueFile = document.getElementById('productCatalogue').files[0];
+      const faqKnowledgeBaseFile = document.getElementById('faqKnowledgeBase').files[0];
+      
+      // Create FormData object for file uploads
+      const fileFormData = new FormData();
+      if (qrCodeFile) {
+        fileFormData.append('qrCodeImage', qrCodeFile);
+      }
+      if (productCatalogueFile) {
+        fileFormData.append('productCatalogue', productCatalogueFile);
+      }
+      if (faqKnowledgeBaseFile) {
+        fileFormData.append('faqKnowledgeBase', faqKnowledgeBaseFile);
+      }
+      
+      // First upload the files
+      console.log('Preparing to upload files...');
+      
+      // Here we would typically have code to upload the files
+      // For now, we'll simulate the upload and proceed with form submission
+      
+      // Get selected payment processing option
+      const paymentProcessing = document.querySelector('input[name="agentPaymentProcessing"]:checked').value;
+      
+      // Create form data object
+      const formData = {
+        businessName: businessName,
+        email: email,
+        whatsappNumber: whatsappNumber,
+        businessWebsite: businessWebsite,
+        agentRole: agentRole,
+        agentTone: agentTone,
+        businessHours: businessHours,
+        receiveEmails: receiveEmails === 'yes',
+        // Payment processing option
+        paymentProcessing: paymentProcessing,
+        // Payment methods
+        paymentMethods: paymentMethods,
+        hasQrPayment: paymentMethods.includes('qr'),
+        qrCodeFileName: qrCodeFile ? qrCodeFile.name : null,
+        hasBankTransfer: paymentMethods.includes('bank'),
+        bankDetails: bankDetails,
+        hasCashOnDelivery: paymentMethods.includes('cash'),
+        // Knowledge base files
+        productCatalogueFileName: productCatalogueFile ? productCatalogueFile.name : null,
+        knowledgeBaseFileName: faqKnowledgeBaseFile ? faqKnowledgeBaseFile.name : null
+      };
+      
+      console.log('Form data:', formData);
+      
+      // Submit the form data
+      submitServiceForm('whatsapp-order', formData);
+    });
+  </script>
 </body>
 </html>

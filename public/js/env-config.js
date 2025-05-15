@@ -46,11 +46,29 @@ fetch('/api/firebase-config')
       measurementId: "G-K143JY5CMM"
     };
     
-    // Mark config as ready
+    // Mark config as ready even with fallback
     window.firebaseConfigReady = true;
     
     // Try to initialize Firebase if main.js has already loaded
     if (typeof initializeFirebaseIfNeeded === 'function') {
       initializeFirebaseIfNeeded();
     }
+  });
+  
+// Fetch Stripe publishable key
+fetch('/api/stripe-config')
+  .then(response => response.json())
+  .then(config => {
+    // Set the global stripeConfig variable
+    window.stripeConfig = {
+      publishableKey: config.publishableKey
+    };
+    console.log('Stripe configuration loaded successfully');
+  })
+  .catch(error => {
+    console.error('Error loading Stripe configuration:', error);
+    // Fallback configuration for development only
+    window.stripeConfig = {
+      publishableKey: "pk_test_51ROs02DF5p4cGWPfcR1wD0JUmInQYMWEqzlRLY3gQW9LrS2U4pKHSs4RizVBKRdxd67D3YQ0tsAg0eLzw08OO7oT00l9sY2na5"
+    };
   });

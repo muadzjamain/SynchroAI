@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Settings - SynchroAI</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+  <!-- Environment Configuration -->
+  <script src="/js/env-config.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+      background-color: #f8f9fa;
+      line-height: 1.6;
+    }
+    
+    .navbar {
+      padding: 15px 0;
+      background-color: #4361ee !important;
+    }
+    
+    .navbar-brand {
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.5rem;
+    }
+    
+    .navbar-light .navbar-nav .nav-link {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .navbar-light .navbar-nav .nav-link:hover {
+      color: #fff;
+    }
+    
+    .main-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 15px;
+    }
+    
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 30px;
+    }
+    
+    .settings-card {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    
+    .settings-card .card-body {
+      padding: 25px;
+    }
+    
+    .settings-section {
+      margin-bottom: 30px;
+    }
+    
+    .settings-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .settings-section-header {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .settings-section-header i {
+      margin-right: 8px;
+      color: #4361ee;
+    }
+    
+    .form-label {
+      font-weight: 500;
+    }
+    
+    .form-control:focus {
+      border-color: #4361ee;
+      box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+    }
+    
+    .btn-primary {
+      background-color: #4361ee;
+      border-color: #4361ee;
+    }
+    
+    .btn-primary:hover {
+      background-color: #3a56d4;
+      border-color: #3a56d4;
+    }
+    
+    .btn-outline-danger {
+      color: #dc3545;
+      border-color: #dc3545;
+    }
+    
+    .btn-outline-danger:hover {
+      background-color: #dc3545;
+      color: #fff;
+    }
+    
+    .danger-zone {
+      border: 1px solid #f8d7da;
+      background-color: #fff8f8;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    
+    .danger-zone-title {
+      color: #842029;
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+    }
+    
+    .alert {
+      margin-bottom: 0;
+      margin-top: 15px;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">
+        <i class="bi bi-robot me-2"></i>SynchroAI
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="profile.html">My Services</a>
+          </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="wallet.html">My Wallet</a>
+          </li>
+        </ul>
+        <div class="auth-guest" style="display: none;">
+          <a href="login.html" class="btn btn-light btn-sm me-2">Log In</a>
+          <a href="signup.html" class="btn btn-outline-light btn-sm">Sign Up</a>
+        </div>
+        <div class="dropdown auth-user" style="display: none;">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+            <i class="bi bi-person-circle user-icon"></i>
+            <span id="navUsername">User</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="wallet.html">My Wallet</a></li>
+            <li><a class="dropdown-item" href="profile-settings.html">Account Settings</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main-container">
+    <h1 class="page-title">Account Settings</h1>
+    
+    <div class="settings-card mb-4">
+      <div class="card-body">
+        <!-- Profile Information Section -->
+        <div class="settings-section">
+          <h2 class="settings-section-header">
+            <i class="bi bi-person-fill"></i> Profile Information
+          </h2>
+          <div class="mb-3">
+            <p>Logged in as: <strong id="userEmail">user@example.com</strong></p>
+            <p>Account created: <span id="accountCreated">January 1, 2025</span></p>
+          </div>
+        </div>
+        
+        <!-- Display Name Section -->
+        <div class="settings-section">
+          <h2 class="settings-section-header">
+            <i class="bi bi-pencil-square"></i> Update Display Name
+          </h2>
+          <form id="update-name-form">
+            <div class="mb-3">
+              <label for="displayName" class="form-label">Display Name</label>
+              <input type="text" class="form-control" id="displayName" placeholder="Enter your display name">
+            </div>
+            <div class="alert alert-success hidden" id="name-success">
+              Display name updated successfully!
+            </div>
+            <div class="alert alert-danger hidden" id="name-error"></div>
+            <button type="submit" class="btn btn-primary">Update Display Name</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="settings-card mb-4">
+      <div class="card-body">
+        <!-- Email Section -->
+        <div class="settings-section">
+          <h2 class="settings-section-header">
+            <i class="bi bi-envelope-fill"></i> Change Email Address
+          </h2>
+          <form id="update-email-form">
+            <div class="mb-3">
+              <label for="newEmail" class="form-label">New Email Address</label>
+              <input type="email" class="form-control" id="newEmail" placeholder="Enter your new email address">
+            </div>
+            <div class="mb-3">
+              <label for="currentPassword" class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="emailCurrentPassword" placeholder="Enter your current password to confirm">
+            </div>
+            <div class="alert alert-success hidden" id="email-success">
+              Email update request sent! Please check your new email for verification.
+            </div>
+            <div class="alert alert-danger hidden" id="email-error"></div>
+            <button type="submit" class="btn btn-primary">Update Email</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="settings-card mb-4">
+      <div class="card-body">
+        <!-- Password Section -->
+        <div class="settings-section">
+          <h2 class="settings-section-header">
+            <i class="bi bi-key-fill"></i> Change Password
+          </h2>
+          <form id="update-password-form">
+            <div class="mb-3">
+              <label for="currentPassword" class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="currentPassword" placeholder="Enter your current password">
+            </div>
+            <div class="mb-3">
+              <label for="newPassword" class="form-label">New Password</label>
+              <input type="password" class="form-control" id="newPassword" placeholder="Enter your new password">
+              <div class="form-text">Password must be at least 8 characters long and include letters and numbers</div>
+            </div>
+            <div class="mb-3">
+              <label for="confirmPassword" class="form-label">Confirm New Password</label>
+              <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm your new password">
+            </div>
+            <div class="alert alert-success hidden" id="password-success">
+              Password updated successfully!
+            </div>
+            <div class="alert alert-danger hidden" id="password-error"></div>
+            <button type="submit" class="btn btn-primary">Update Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="settings-card">
+      <div class="card-body">
+        <!-- Danger Zone -->
+        <div class="settings-section">
+          <h2 class="settings-section-header">
+            <i class="bi bi-exclamation-triangle-fill text-danger"></i> Danger Zone
+          </h2>
+          <div class="danger-zone">
+            <div class="danger-zone-title">Delete Account</div>
+            <p>Warning: This action is irreversible. All your personal data, services, and wallet balance will be permanently deleted.</p>
+            <button id="delete-account-btn" class="btn btn-outline-danger">Delete My Account</button>
+            
+            <!-- Confirmation dialog (hidden by default) -->
+            <div id="delete-confirmation" class="hidden mt-3">
+              <div class="alert alert-danger">
+                <p class="fw-bold">Are you absolutely sure?</p>
+                <p>Please enter your password to confirm account deletion:</p>
+                <div class="mb-3">
+                  <input type="password" class="form-control" id="deletePassword" placeholder="Enter your password">
+                </div>
+                <div class="d-flex gap-2">
+                  <button id="confirm-delete-btn" class="btn btn-danger">Yes, Delete My Account</button>
+                  <button id="cancel-delete-btn" class="btn btn-secondary">Cancel</button>
+                </div>
+              </div>
+            </div>
+            <div class="alert alert-danger hidden" id="delete-error"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-4">
+    <div class="container text-center">
+      <p class="text-muted mb-0">&copy; 2025 SynchroAI. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Custom JavaScript -->
+  <script src="js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize Firebase
+      const auth = firebase.auth();
+      const db = firebase.firestore();
+      
+      // Check authentication state
+      auth.onAuthStateChanged(function(user) {
+        if (user) {
+          // User is signed in
+          const authUser = document.querySelectorAll('.auth-user');
+          const authGuest = document.querySelectorAll('.auth-guest');
+          
+          authUser.forEach(el => el.style.display = 'block');
+          authGuest.forEach(el => el.style.display = 'none');
+          
+          // Set username in navigation
+          document.getElementById('navUsername').textContent = user.displayName || user.email;
+          
+          // Populate user information
+          document.getElementById('userEmail').textContent = user.email;
+          document.getElementById('displayName').value = user.displayName || '';
+          
+          // Get account creation date from Firestore
+          db.collection('users').doc(user.uid).get()
+            .then(doc => {
+              if (doc.exists) {
+                const userData = doc.data();
+                if (userData.createdAt) {
+                  const createdAt = userData.createdAt.toDate();
+                  document.getElementById('accountCreated').textContent = new Date(createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long', 
+                    day: 'numeric'
+                  });
+                }
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching user data:', error);
+            });
+        } else {
+          // User is signed out, redirect to login
+          window.location.href = 'login.html';
+        }
+      });
+      
+      // Handle sign out
+      document.getElementById('sign-out').addEventListener('click', function(e) {
+        e.preventDefault();
+        auth.signOut().then(() => {
+          window.location.href = 'index.html';
+        }).catch(error => {
+          console.error('Error signing out:', error);
+        });
+      });
+      
+      // Update Display Name Form
+      document.getElementById('update-name-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const nameSuccess = document.getElementById('name-success');
+        const nameError = document.getElementById('name-error');
+        const displayName = document.getElementById('displayName').value.trim();
+        
+        nameSuccess.classList.add('hidden');
+        nameError.classList.add('hidden');
+        
+        if (!displayName) {
+          nameError.textContent = 'Display name cannot be empty';
+          nameError.classList.remove('hidden');
+          return;
+        }
+        
+        const user = auth.currentUser;
+        if (user) {
+          user.updateProfile({
+            displayName: displayName
+          }).then(() => {
+            // Update successful
+            nameSuccess.classList.remove('hidden');
+            
+            // Update displayed name in navigation
+            document.getElementById('navUsername').textContent = displayName;
+          }).catch(error => {
+            nameError.textContent = error.message;
+            nameError.classList.remove('hidden');
+          });
+        }
+      });
+      
+      // Update Email Form
+      document.getElementById('update-email-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const emailSuccess = document.getElementById('email-success');
+        const emailError = document.getElementById('email-error');
+        const newEmail = document.getElementById('newEmail').value.trim();
+        const password = document.getElementById('emailCurrentPassword').value;
+        
+        emailSuccess.classList.add('hidden');
+        emailError.classList.add('hidden');
+        
+        if (!newEmail) {
+          emailError.textContent = 'New email cannot be empty';
+          emailError.classList.remove('hidden');
+          return;
+        }
+        
+        if (!password) {
+          emailError.textContent = 'Password is required to change email';
+          emailError.classList.remove('hidden');
+          return;
+        }
+        
+        const user = auth.currentUser;
+        if (user) {
+          // Re-authenticate user before changing email
+          const credential = firebase.auth.EmailAuthProvider.credential(
+            user.email, 
+            password
+          );
+          
+          user.reauthenticateWithCredential(credential).then(() => {
+            // User re-authenticated, now update email
+            return user.updateEmail(newEmail);
+          }).then(() => {
+            // Email update successful
+            emailSuccess.classList.remove('hidden');
+            document.getElementById('userEmail').textContent = newEmail;
+            document.getElementById('newEmail').value = '';
+            document.getElementById('emailCurrentPassword').value = '';
+            
+            // Send verification email
+            return user.sendEmailVerification();
+          }).catch(error => {
+            // Error occurred
+            emailError.textContent = error.message;
+            emailError.classList.remove('hidden');
+          });
+        }
+      });
+      
+      // Update Password Form
+      document.getElementById('update-password-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const passwordSuccess = document.getElementById('password-success');
+        const passwordError = document.getElementById('password-error');
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        passwordSuccess.classList.add('hidden');
+        passwordError.classList.add('hidden');
+        
+        // Validate inputs
+        if (!currentPassword) {
+          passwordError.textContent = 'Current password is required';
+          passwordError.classList.remove('hidden');
+          return;
+        }
+        
+        if (!newPassword) {
+          passwordError.textContent = 'New password is required';
+          passwordError.classList.remove('hidden');
+          return;
+        }
+        
+        if (newPassword.length < 8) {
+          passwordError.textContent = 'Password must be at least 8 characters';
+          passwordError.classList.remove('hidden');
+          return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+          passwordError.textContent = 'Passwords do not match';
+          passwordError.classList.remove('hidden');
+          return;
+        }
+        
+        const user = auth.currentUser;
+        if (user) {
+          // Re-authenticate user before changing password
+          const credential = firebase.auth.EmailAuthProvider.credential(
+            user.email, 
+            currentPassword
+          );
+          
+          user.reauthenticateWithCredential(credential).then(() => {
+            // User re-authenticated, now update password
+            return user.updatePassword(newPassword);
+          }).then(() => {
+            // Password update successful
+            passwordSuccess.classList.remove('hidden');
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+          }).catch(error => {
+            // Error occurred
+            passwordError.textContent = error.message;
+            passwordError.classList.remove('hidden');
+          });
+        }
+      });
+      
+      // Delete Account
+      document.getElementById('delete-account-btn').addEventListener('click', function() {
+        const deleteConfirmation = document.getElementById('delete-confirmation');
+        deleteConfirmation.classList.remove('hidden');
+      });
+      
+      document.getElementById('cancel-delete-btn').addEventListener('click', function() {
+        const deleteConfirmation = document.getElementById('delete-confirmation');
+        deleteConfirmation.classList.add('hidden');
+      });
+      
+      document.getElementById('confirm-delete-btn').addEventListener('click', function() {
+        const deleteError = document.getElementById('delete-error');
+        const deletePassword = document.getElementById('deletePassword').value;
+        
+        deleteError.classList.add('hidden');
+        
+        if (!deletePassword) {
+          deleteError.textContent = 'Password is required to confirm deletion';
+          deleteError.classList.remove('hidden');
+          return;
+        }
+        
+        const user = auth.currentUser;
+        if (user) {
+          // Re-authenticate user before deleting
+          const credential = firebase.auth.EmailAuthProvider.credential(
+            user.email, 
+            deletePassword
+          );
+          
+          user.reauthenticateWithCredential(credential).then(() => {
+            // First delete user data from Firestore
+            return db.collection('users').doc(user.uid).delete();
+          }).then(() => {
+            // Then delete the Firebase Auth account
+            return user.delete();
+          }).then(() => {
+            // Account deleted successfully, redirect to home
+            alert('Your account has been deleted. You will be redirected to the home page.');
+            window.location.href = 'index.html';
+          }).catch(error => {
+            // Error occurred
+            deleteError.textContent = error.message;
+            deleteError.classList.remove('hidden');
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

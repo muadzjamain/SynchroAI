@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Credits - SynchroAI</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+  <!-- Firebase Configuration from Environment Variables -->
+  <script src="/js/env-config.js"></script>
+  <!-- Stripe.js -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #333;
+      background-color: #f8f9fa;
+      line-height: 1.6;
+    }
+    
+    .navbar {
+      padding: 15px 0;
+      background-color: #4361ee !important;
+    }
+    
+    .navbar-brand {
+      font-weight: 700;
+      color: #fff;
+      font-size: 1.5rem;
+    }
+    
+    .navbar-light .navbar-nav .nav-link {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .navbar-light .navbar-nav .nav-link:hover {
+      color: #fff;
+    }
+    
+    .main-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 15px;
+    }
+    
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 30px;
+    }
+    
+    .credit-card {
+      background-color: #4361ee;
+      color: white;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 20px rgba(67, 97, 238, 0.15);
+    }
+    
+    .credit-balance {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    
+    .credit-label {
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+    
+    .card {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    
+    .card-body {
+      padding: 25px;
+    }
+    
+    .form-section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    
+    .btn-primary {
+      background-color: #4361ee;
+      border-color: #4361ee;
+      padding: 12px 24px;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+    
+    .btn-primary:hover {
+      background-color: #3a56d4;
+      border-color: #3a56d4;
+    }
+    
+    .transaction-item {
+      padding: 15px 0;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .transaction-item:last-child {
+      border-bottom: none;
+    }
+    
+    .transaction-date {
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+    
+    .transaction-amount {
+      font-weight: 600;
+    }
+    
+    .transaction-amount.credit {
+      color: #198754;
+    }
+    
+    .transaction-amount.debit {
+      color: #dc3545;
+    }
+    
+    .transaction-description {
+      font-size: 0.9rem;
+    }
+    
+    .pricing-option {
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    
+    .pricing-option:hover, 
+    .pricing-option.selected {
+      border-color: #4361ee;
+      background-color: rgba(67, 97, 238, 0.05);
+    }
+    
+    .pricing-option.selected {
+      box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.5);
+    }
+    
+    .pricing-price {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #4361ee;
+      margin-bottom: 10px;
+    }
+    
+    .pricing-credits {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .pricing-description {
+      color: #6c757d;
+    }
+    
+    .dropdown-toggle::after {
+      display: none;
+    }
+    
+    .user-icon {
+      margin-right: 5px;
+    }
+    
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+      display: inline-block;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">
+        <i class="bi bi-robot me-2"></i>SynchroAI
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Home</a>
+          </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="profile.html">My Services</a>
+          </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link active" href="credits.html">My Credits</a>
+          </li>
+        </ul>
+        <!-- Guest Navigation -->
+        <div class="auth-guest" style="display: block;">
+          <a href="login.html" class="btn btn-outline-light me-2">Log In</a>
+          <a href="signup.html" class="btn btn-light">Sign Up</a>
+        </div>
+        <!-- User Navigation -->
+        <div class="auth-user dropdown" style="display: none;">
+          <a class="btn btn-outline-light dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-person-circle user-icon"></i><span id="navUsername">User</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+            <li><a class="dropdown-item" href="profile.html">My Services</a></li>
+            <li><a class="dropdown-item" href="credits.html">My Credits</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main-container">
+    <h1 class="page-title">My Credits</h1>
+    
+    <!-- Credit Balance Card -->
+    <div class="credit-card">
+      <div class="credit-label">Available Credits</div>
+      <div class="credit-balance" id="userCreditBalance">0</div>
+      <p class="credit-label mb-0">Use credits to pay for AI services on SynchroAI</p>
+    </div>
+    
+    <!-- Top Up Section -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h2 class="form-section-title">Top Up Credits</h2>
+        
+        <div class="pricing-options">
+          <div class="pricing-option" data-amount="10" data-credits="100">
+            <div class="pricing-price">$10</div>
+            <div class="pricing-credits">100 Credits</div>
+            <div class="pricing-description">Basic package for occasional use</div>
+          </div>
+          
+          <div class="pricing-option" data-amount="25" data-credits="300">
+            <div class="pricing-price">$25</div>
+            <div class="pricing-credits">300 Credits</div>
+            <div class="pricing-description">Popular! Great value for regular users</div>
+          </div>
+          
+          <div class="pricing-option" data-amount="50" data-credits="700">
+            <div class="pricing-price">$50</div>
+            <div class="pricing-credits">700 Credits</div>
+            <div class="pricing-description">Best value! Perfect for business needs</div>
+          </div>
+        </div>
+        
+        <div class="mt-4">
+          <button id="checkout-button" class="btn btn-primary w-100" disabled>Select a package to continue</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Transaction History -->
+    <div class="card">
+      <div class="card-body">
+        <h2 class="form-section-title">Transaction History</h2>
+        
+        <div id="transaction-history">
+          <!-- Transactions will be dynamically loaded here -->
+          
+          <!-- Example transaction items -->
+          <div class="transaction-item">
+            <div class="d-flex justify-content-between align-items-top">
+              <div>
+                <div class="transaction-description">Credit Top Up</div>
+                <div class="transaction-date">May 15, 2025</div>
+              </div>
+              <div class="transaction-amount credit">+100 Credits</div>
+            </div>
+          </div>
+          
+          <div class="transaction-item">
+            <div class="d-flex justify-content-between align-items-top">
+              <div>
+                <div class="transaction-description">WhatsApp FAQ AI Service Subscription</div>
+                <div class="transaction-date">May 13, 2025</div>
+              </div>
+              <div class="transaction-amount debit">-50 Credits</div>
+            </div>
+          </div>
+          
+          <div class="transaction-item">
+            <div class="d-flex justify-content-between align-items-top">
+              <div>
+                <div class="transaction-description">Credit Top Up</div>
+                <div class="transaction-date">May 10, 2025</div>
+              </div>
+              <div class="transaction-amount credit">+300 Credits</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="py-4">
+    <div class="container text-center">
+      <p class="text-muted mb-0">&copy; 2025 SynchroAI. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Custom JavaScript -->
+  <script src="js/main.js"></script>
+  <script>
+    // Initialize Stripe
+    let stripe;
+    let selectedPriceOption = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize Firebase (this would be in main.js)
+      // firebase.initializeApp(firebaseConfig);
+      
+      // Initialize Stripe
+      const publishableKey = 'pk_test_51NXXXXXXXXXXXXXXsamplekey'; // Replace with your publishable key from environment variables
+      stripe = Stripe(publishableKey);
+      
+      // Check authentication state
+      firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+          // User is signed in
+          const authUser = document.querySelectorAll('.auth-user');
+          const authGuest = document.querySelectorAll('.auth-guest');
+          
+          authUser.forEach(el => el.style.display = 'block');
+          authGuest.forEach(el => el.style.display = 'none');
+          
+          // Set username in navigation
+          document.getElementById('navUsername').textContent = user.displayName || user.email;
+          
+          // Fetch user credits
+          fetchUserCredits(user.uid);
+          
+          // Load transaction history
+          loadTransactionHistory(user.uid);
+        } else {
+          // User is signed out, redirect to login
+          window.location.href = 'login.html';
+        }
+      });
+      
+      // Handle sign out
+      document.getElementById('sign-out').addEventListener('click', function(e) {
+        e.preventDefault();
+        firebase.auth().signOut().then(() => {
+          // Sign-out successful, redirect to home
+          window.location.href = 'index.html';
+        }).catch((error) => {
+          // An error happened
+          console.error('Sign out error:', error);
+        });
+      });
+      
+      // Handle pricing option selection
+      const pricingOptions = document.querySelectorAll('.pricing-option');
+      pricingOptions.forEach(option => {
+        option.addEventListener('click', function() {
+          // Remove selected class from all options
+          pricingOptions.forEach(opt => opt.classList.remove('selected'));
+          
+          // Add selected class to clicked option
+          this.classList.add('selected');
+          
+          // Update button text with selected amount
+          const amount = this.getAttribute('data-amount');
+          const credits = this.getAttribute('data-credits');
+          const checkoutButton = document.getElementById('checkout-button');
+          checkoutButton.textContent = `Pay $${amount} for ${credits} Credits`;
+          checkoutButton.disabled = false;
+          
+          // Store selected option
+          selectedPriceOption = {
+            amount: parseInt(amount),
+            credits: parseInt(credits)
+          };
+        });
+      });
+      
+      // Handle checkout button
+      document.getElementById('checkout-button').addEventListener('click', function() {
+        if (!selectedPriceOption) return;
+        
+        const button = this;
+        const originalText = button.textContent;
+        
+        // Disable button and show loading spinner
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner"></span> Processing...';
+        
+        // In a real app, you would create a checkout session on your server
+        // For demo purposes, we'll simulate this process
+        setTimeout(() => {
+          createStripeCheckoutSession(selectedPriceOption.amount, selectedPriceOption.credits)
+            .then(sessionId => {
+              return stripe.redirectToCheckout({ sessionId });
+            })
+            .catch(error => {
+              console.error('Error creating checkout session:', error);
+              alert('Something went wrong. Please try again later.');
+              button.disabled = false;
+              button.textContent = originalText;
+            });
+        }, 1500);
+      });
+    });
+    
+    // Fetch user credits from Firestore
+    function fetchUserCredits(userId) {
+      const db = firebase.firestore();
+      db.collection('users').doc(userId).get()
+        .then(doc => {
+          if (doc.exists) {
+            const userData = doc.data();
+            const credits = userData.credits || 0;
+            
+            // Update credit balance display
+            document.getElementById('userCreditBalance').textContent = credits;
+          } else {
+            // Create user document if it doesn't exist
+            db.collection('users').doc(userId).set({
+              credits: 0,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('userCreditBalance').textContent = '0';
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching user credits:', error);
+        });
+    }
+    
+    // Load transaction history
+    function loadTransactionHistory(userId) {
+      const db = firebase.firestore();
+      const transactionContainer = document.getElementById('transaction-history');
+      
+      // Clear existing transactions
+      transactionContainer.innerHTML = '';
+      
+      // Get transactions from Firestore
+      db.collection('transactions')
+        .where('userId', '==', userId)
+        .orderBy('timestamp', 'desc')
+        .limit(10)
+        .get()
+        .then(querySnapshot => {
+          if (querySnapshot.empty) {
+            // No transactions yet
+            transactionContainer.innerHTML = '<p class="text-muted text-center py-3">No transactions yet.</p>';
+            return;
+          }
+          
+          // Create transaction items
+          querySnapshot.forEach(doc => {
+            const transaction = doc.data();
+            const transactionItem = createTransactionItem(transaction);
+            transactionContainer.appendChild(transactionItem);
+          });
+        })
+        .catch(error => {
+          console.error('Error loading transactions:', error);
+          transactionContainer.innerHTML = '<p class="text-danger text-center py-3">Failed to load transaction history.</p>';
+        });
+    }
+    
+    // Create transaction item element
+    function createTransactionItem(transaction) {
+      const div = document.createElement('div');
+      div.className = 'transaction-item';
+      
+      const isCredit = transaction.type === 'credit';
+      const amountClass = isCredit ? 'credit' : 'debit';
+      const amountPrefix = isCredit ? '+' : '-';
+      
+      // Format date
+      const date = transaction.timestamp.toDate();
+      const formattedDate = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      }).format(date);
+      
+      div.innerHTML = `
+        <div class="d-flex justify-content-between align-items-top">
+          <div>
+            <div class="transaction-description">${transaction.description}</div>
+            <div class="transaction-date">${formattedDate}</div>
+          </div>
+          <div class="transaction-amount ${amountClass}">${amountPrefix}${transaction.amount} Credits</div>
+        </div>
+      `;
+      
+      return div;
+    }
+    
+    // Create Stripe checkout session
+    // In a real application, this would be done server-side
+    function createStripeCheckoutSession(amount, credits) {
+      // This is a mock function that would normally call your backend
+      // For demo purposes, we'll just return a mock session ID
+      return new Promise(resolve => {
+        setTimeout(() => {
+          // Store credits and amount in localStorage
+          localStorage.setItem('pendingCredits', credits);
+          localStorage.setItem('pendingAmount', amount);
+          
+          // Simulate a session ID
+          resolve('cs_test_' + Math.random().toString(36).substr(2, 9));
+        }, 1000);
+      });
+    }
+  </script>
+</body>
+</html>

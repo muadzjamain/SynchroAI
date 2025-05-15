@@ -293,26 +293,51 @@
           <h2 class="form-section-title">Payment Method</h2>
           
           <div class="payment-methods">
-            <div class="payment-method active" id="card-payment">
+            <div class="payment-method active" id="credit-payment">
               <div class="payment-method-header">
-                <input type="radio" name="paymentMethod" id="card" value="card" class="payment-method-radio" checked>
-                <label for="card" class="payment-method-title">Credit or Debit Card</label>
+                <input type="radio" name="paymentMethod" id="web-credit" value="web-credit" class="payment-method-radio" checked>
+                <label for="web-credit" class="form-label mb-0">
+                  <i class="bi bi-coin me-2"></i> SynchroAI Credit
+                </label>
               </div>
               <div class="payment-method-body">
-                <div class="mb-3">
-                  <label for="card-element" class="form-label">Card Information</label>
-                  <div id="card-element">
-                    <!-- Stripe Card Element will be inserted here -->
-                  </div>
-                  <div id="card-errors" role="alert"></div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span>Your balance:</span>
+                  <span class="fw-bold" id="user-credit-balance">0 Credits</span>
                 </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span>Service price:</span>
+                  <span class="fw-bold" id="service-credit-price">0 Credits</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2 pt-2 border-top">
+                  <span>Balance after purchase:</span>
+                  <span class="fw-bold" id="remaining-balance">0 Credits</span>
+                </div>
+                <div id="insufficient-credits" class="alert alert-warning mt-3 d-none">
+                  <i class="bi bi-exclamation-triangle me-2"></i>You don't have enough credits. Please <a href="credits.html" class="alert-link">top up your account</a> or select another payment method.
+                </div>
+              </div>
+            </div>
+            
+            <div class="payment-method" id="card-payment">
+              <div class="payment-method-header">
+                <input type="radio" name="paymentMethod" id="card" value="card" class="payment-method-radio">
+                <label for="card" class="form-label mb-0">
+                  <i class="bi bi-credit-card me-2"></i> Credit / Debit Card
+                </label>
+              </div>
+              <div class="payment-method-body">
+                <div id="card-element"></div>
+                <div id="card-errors" class="text-danger mt-2" role="alert"></div>
               </div>
             </div>
             
             <div class="payment-method" id="paypal-payment">
               <div class="payment-method-header">
                 <input type="radio" name="paymentMethod" id="paypal" value="paypal" class="payment-method-radio">
-                <label for="paypal" class="payment-method-title">PayPal</label>
+                <label for="paypal" class="form-label mb-0">
+                  <i class="bi bi-paypal me-2"></i> PayPal
+                </label>
               </div>
               <div class="payment-method-body">
                 <p>You will be redirected to PayPal to complete your purchase.</p>
@@ -322,10 +347,9 @@
             <div class="payment-method" id="test-payment">
               <div class="payment-method-header">
                 <input type="radio" name="paymentMethod" id="test" value="test" class="payment-method-radio">
-                <label for="test" class="payment-method-title">Test Payment (For Development)</label>
-              </div>
-              <div class="payment-method-body">
-                <p>This is a test payment option for development purposes. No actual payment will be processed.</p>
+                <label for="test" class="form-label mb-0">
+                  <i class="bi bi-bug me-2"></i> Test Payment (Demo)
+                </label>
                 <div class="alert alert-info">
                   <i class="bi bi-info-circle"></i> Selecting this option will simulate a successful payment without any actual transaction.
                 </div>
@@ -511,7 +535,47 @@
         
         const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
         
-        if (paymentMethod === 'card') {
+        if (paymentMethod === 'web-credit') {
+          // Process payment using website credits
+          console.log('Processing web credit payment...');
+          
+          // Check if user has enough credits
+          if ((window.userCredits || 0) < (window.serviceCreditPrice || 0)) {
+            alert('Insufficient credits. Please top up your account.');
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+            return;
+          }
+          
+          // Get current user ID
+          const userId = firebase.auth().currentUser.uid;
+          const db = firebase.firestore();
+          
+          // Get the pending service from localStorage
+          const pendingService = JSON.parse(localStorage.getItem('pendingService'));
+          
+          // Deduct credits from user account
+          db.collection('users').doc(userId).update({
+            credits: firebase.firestore.FieldValue.increment(-window.serviceCreditPrice)
+          }).then(() => {
+            // Record the transaction
+            return db.collection('transactions').add({
+              userId: userId,
+              amount: window.serviceCreditPrice,
+              type: 'debit',
+              description: `${pendingService.name || 'AI Service'} Subscription`,
+              timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }).then(() => {
+            // Process the payment
+            processPayment('web_credit_' + Date.now());
+          }).catch(error => {
+            console.error('Error processing credit payment:', error);
+            alert('Something went wrong. Please try again.');
+            submitButton.disabled = false;
+            submitButton.textContent = originalButtonText;
+          });
+        } else if (paymentMethod === 'card') {
           // Create payment method using the card element
           stripe.createPaymentMethod({
             type: 'card',

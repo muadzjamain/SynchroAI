@@ -13,6 +13,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js"></script>
+  <!-- Environment Configuration -->
+  <script src="/js/env-config.js"></script>
   <style>
     body {
       font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -213,6 +215,9 @@
           <li class="nav-item auth-user" style="display: none;">
             <a class="nav-link" href="profile.html">My Services</a>
           </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="wallet.html">My Wallet <span class="ms-1 badge bg-light text-primary" id="navWalletBalance">$0.00</span></a>
+          </li>
         </ul>
         <!-- Guest Navigation -->
         <div class="auth-guest" style="display: block;">
@@ -225,7 +230,8 @@
             <i class="bi bi-person-circle user-icon"></i><span>User</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <li><a class="dropdown-item" href="profile.html">My Services</a></li>
+            <li><a class="dropdown-item" href="wallet.html">My Wallet</a></li>
+            <li><a class="dropdown-item" href="profile-settings.html">Account Settings</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
           </ul>
@@ -244,31 +250,82 @@
           <h2 class="form-section-title">Business Information</h2>
           
           <div class="mb-3">
-            <label for="businessName" class="form-label">1. Business Name</label>
+            <label for="businessName" class="form-label">Business Name</label>
             <input type="text" class="form-control" id="businessName" placeholder="Enter your business name" required>
           </div>
           
           <div class="mb-3">
-            <label for="email" class="form-label">2. Email</label>
+            <label for="email" class="form-label">Email</label>
             <input type="email" class="form-control" id="email" placeholder="Enter your email address" required>
           </div>
           
           <div class="mb-3">
-            <label for="whatsappNumber" class="form-label">3. WhatsApp Business Number</label>
+            <label for="whatsappNumber" class="form-label">WhatsApp Business Number</label>
             <input type="tel" class="form-control" id="whatsappNumber" placeholder="+1234567890" required>
             <div class="form-text">Include country code (e.g., +1 for US, +62 for Indonesia)</div>
           </div>
           
           <div class="mb-3">
-            <label for="businessWebsite" class="form-label">4. Business Website / Online Store Link</label>
-            <input type="url" class="form-control" id="businessWebsite" placeholder="https://example.com or your shop URL" required>
-            <div class="form-text">E.g., Shopee, Alibaba, or your official website</div>
+            <label for="businessWebsite" class="form-label">Business Website / Online Store Link</label>
+            <input type="url" class="form-control" id="businessWebsite" placeholder="https://example.com or your shop URL">
+            <div class="form-text">E.g., Shopee, Alibaba, or your official website (Optional)</div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2 class="form-section-title">AI Agent Configuration</h2>
+
+          <div class="mb-3">
+            <label for="agentRole" class="form-label">Role of the AI Agent</label>
+            <input type="text" class="form-control" id="agentRole" placeholder="restaurant owner / gadget seller / print shop owner / etc" required>
           </div>
           
           <div class="mb-3">
-            <label for="faqSpreadsheet" class="form-label">5. FAQ Knowledge Base (Google Sheet link)</label>
-            <input type="url" class="form-control" id="faqSpreadsheet" placeholder="https://docs.google.com/spreadsheets/d/..." required>
-            <div class="form-text">Provide a link to a spreadsheet with Q&A content or product information that the AI will use to respond, like a knowledge base.</div>
+            <label for="agentTone" class="form-label">Tone</label>
+            <select class="form-select" id="agentTone" required>
+              <option value="" selected disabled>Select a tone for your AI agent</option>
+              <option value="formal">Formal</option>
+              <option value="cheerful">Cheerful</option>
+              <option value="normal">Normal</option>
+              <option value="professional">Professional</option>
+              <option value="friendly">Friendly</option>
+              <option value="casual">Casual</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Agent Payment Processing</label>
+            <div class="form-text mb-2">Choose how this agent will process payments for your service</div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="agentPaymentProcessing" id="stripePayment" value="stripe" checked>
+              <label class="form-check-label" for="stripePayment">
+                Use Stripe (Process payments directly via credit card)
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="agentPaymentProcessing" id="webWallet" value="webWallet">
+              <label class="form-check-label" for="webWallet">
+                Use SynchroAI Wallet (Customers will pay using their wallet balance)
+              </label>
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="productCatalogue" class="form-label">Product / Service Catalogue</label>
+            <input type="file" class="form-control" id="productCatalogue" accept=".pdf,.xls,.xlsx,.csv">
+            <div class="form-text">Upload your Excel or PDF file containing your products or services</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="faqKnowledgeBase" class="form-label">FAQ Knowledge Base</label>
+            <input type="file" class="form-control" id="faqKnowledgeBase" accept=".pdf,.xls,.xlsx,.csv" required>
+            <div class="form-text">Upload your Excel or PDF file containing FAQs for your business</div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="businessHours" class="form-label">Business Hours</label>
+            <textarea class="form-control" id="businessHours" rows="3" placeholder="Monday-Friday: 9am-5pm, Saturday: 10am-3pm, Sunday: Closed"></textarea>
+            <div class="form-text">The AI will inform customers when your business is available (Optional)</div>
           </div>
         </div>
         
@@ -306,7 +363,22 @@
   
   <!-- Custom JavaScript -->
   <script src="js/main.js"></script>
+  <script src="js/wallet-balance.js"></script>
   <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // The main.js script will handle authentication state through setupAuthObserver
+      // We just need to make sure the email field is filled when a user is authenticated
+      firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+          // Set email field if available
+          const emailInput = document.getElementById('email');
+          if (emailInput && !emailInput.value) {
+            emailInput.value = user.email || '';
+          }
+        }
+      });
+    });
+    
     // Handle form submission
     document.getElementById('whatsapp-faq-form').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -315,8 +387,30 @@
       const businessName = document.getElementById('businessName').value;
       const email = document.getElementById('email').value;
       const whatsappNumber = document.getElementById('whatsappNumber').value;
-      const businessWebsite = document.getElementById('businessWebsite').value;
-      const faqSpreadsheet = document.getElementById('faqSpreadsheet').value;
+      const businessWebsite = document.getElementById('businessWebsite').value || null;
+      const agentRole = document.getElementById('agentRole').value;
+      const agentTone = document.getElementById('agentTone').value;
+      const businessHours = document.getElementById('businessHours').value || null;
+      
+      // Get selected payment processing option
+      const paymentProcessing = document.querySelector('input[name="agentPaymentProcessing"]:checked').value;
+      
+      // Handle file uploads
+      const productCatalogueFile = document.getElementById('productCatalogue').files[0];
+      const faqKnowledgeBaseFile = document.getElementById('faqKnowledgeBase').files[0];
+      
+      // Create FormData object for file uploads
+      const fileFormData = new FormData();
+      if (productCatalogueFile) {
+        fileFormData.append('productCatalogue', productCatalogueFile);
+      }
+      fileFormData.append('faqKnowledgeBase', faqKnowledgeBaseFile);
+      
+      // First upload the files
+      console.log('Preparing to upload files...');
+      
+      // Here we would typically have code to upload the file
+      // For now, we'll simulate the upload and proceed with form submission
       
       // Create form data object
       const formData = {
@@ -324,8 +418,16 @@
         email: email,
         whatsappNumber: whatsappNumber,
         businessWebsite: businessWebsite,
-        faqSpreadsheet: faqSpreadsheet
+        agentRole: agentRole,
+        agentTone: agentTone,
+        businessHours: businessHours,
+        // Payment processing option
+        paymentProcessing: paymentProcessing,
+        productCatalogueFileName: productCatalogueFile ? productCatalogueFile.name : null,
+        knowledgeBaseFileName: faqKnowledgeBaseFile ? faqKnowledgeBaseFile.name : null
       };
+      
+      console.log('Form data:', formData);
       
       // Submit the form data
       submitServiceForm('whatsapp-faq', formData);

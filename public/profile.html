@@ -136,6 +136,17 @@
     .user-icon {
       margin-right: 5px;
     }
+    
+    .wallet-balance-pill {
+      background-color: #4361ee;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 50px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(67, 97, 238, 0.2);
+    }
   </style>
 </head>
 <body>
@@ -156,6 +167,9 @@
           <li class="nav-item auth-user" style="display: none;">
             <a class="nav-link active" href="profile.html">My Services</a>
           </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="wallet.html">My Wallet <span class="ms-1 badge bg-light text-primary" id="navWalletBalance">$0.00</span></a>
+          </li>
         </ul>
         <!-- Guest Navigation -->
         <div class="auth-guest" style="display: block;">
@@ -168,7 +182,8 @@
             <i class="bi bi-person-circle user-icon"></i><span>User</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <li><a class="dropdown-item" href="profile.html">My Services</a></li>
+            <li><a class="dropdown-item" href="wallet.html">My Wallet</a></li>
+            <li><a class="dropdown-item" href="profile-settings.html">Account Settings</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
           </ul>
@@ -179,7 +194,14 @@
 
   <!-- Main Content -->
   <div class="main-container">
-    <h1 class="page-title">My AI Services</h1>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="page-title mb-0">My AI Services</h1>
+      <div class="wallet-balance-pill">
+        <i class="bi bi-wallet2 me-2"></i>
+        $<span id="userWalletBalance">0.00</span>
+        <a href="wallet.html" class="btn btn-sm btn-light ms-2">Top Up</a>
+      </div>
+    </div>
     
     <div id="services-container">
       <!-- Service items will be dynamically loaded here -->
@@ -234,5 +256,42 @@
   
   <!-- Custom JavaScript -->
   <script src="js/main.js"></script>
+  <script src="js/wallet-balance.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check authentication state
+      firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+          // User is signed in, fetch their credit balance
+          fetchUserCredits(user.uid);
+        }
+      });
+    });
+    
+    // Fetch user wallet balance from Firestore
+    function fetchUserCredits(userId) {
+      const db = firebase.firestore();
+      db.collection('users').doc(userId).get()
+        .then(doc => {
+          if (doc.exists) {
+            const userData = doc.data();
+            const walletBalance = userData.walletBalance || 0;
+            
+            // Update wallet balance display with 2 decimal places
+            document.getElementById('userWalletBalance').textContent = walletBalance.toFixed(2);
+          } else {
+            // Create user document if it doesn't exist
+            db.collection('users').doc(userId).set({
+              walletBalance: 0,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('userWalletBalance').textContent = '0.00';
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching user wallet balance:', error);
+        });
+    }
+  </script>
 </body>
 </html>

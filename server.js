@@ -1,10 +1,11 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const { google } = require('googleapis');
-require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Initialize Express app
 const app = express();
@@ -42,6 +43,10 @@ app.get('/js/env-config.js', (req, res) => {
     messagingSenderId: "${process.env.FIREBASE_MESSAGING_SENDER_ID}",
     appId: "${process.env.FIREBASE_APP_ID}",
     measurementId: "${process.env.FIREBASE_MEASUREMENT_ID}"
+  };
+  
+  window.stripeConfig = {
+    publishableKey: "${process.env.STRIPE_PUBLISHABLE_KEY}"
   };`);
 });
 
@@ -421,6 +426,117 @@ app.delete('/api/services/:serviceId', (req, res) => {
   } catch (error) {
     console.error('Error deleting service:', error);
     res.status(500).json({ error: 'Failed to delete service' });
+  }
+});
+
+// Stripe API endpoints
+
+// Create a checkout session
+app.post('/api/create-checkout-session', async (req, res) => {
+  try {
+    console.log('Received checkout session request:', req.body);
+    const { amount, userId } = req.body;
+    
+    if (!amount || !userId) {
+      console.error('Missing required fields:', { amount, userId });
+      return res.status(400).json({ error: 'Missing required fields: amount and userId are required' });
+    }
+    
+    console.log('Using stripe key:', process.env.STRIPE_SECRET_KEY.substring(0, 10) + '...');
+    
+    // Create a new checkout session
+    const sessionParams = {
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'SynchroAI Wallet Top-up',
+              description: `Add $${amount} to your wallet`,
+            },
+            unit_amount: amount * 100, // Convert to cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${req.headers.origin}/wallet-success.html?session_id={CHECKOUT_SESSION_ID}&amount=${amount}`,
+      cancel_url: `${req.headers.origin}/wallet.html`,
+      client_reference_id: userId, // Store the user ID
+      metadata: {
+        userId: userId,
+        amount: amount
+      }
+    };
+    
+    console.log('Creating Stripe checkout session with params:', JSON.stringify(sessionParams, null, 2));
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    console.log('Stripe session created successfully:', session.id);
+
+    res.json({ id: session.id });
+  } catch (error) {
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Handle successful payment
+app.get('/api/payment-success', async (req, res) => {
+  try {
+    const { sessionId } = req.query;
+    
+    // Retrieve the session to verify the payment
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    
+    if (session.payment_status === 'paid') {
+      const userId = session.metadata.userId;
+      const amount = parseFloat(session.metadata.amount);
+      
+      // In a real implementation, this would update the user's wallet in Firestore
+      console.log(`Adding $${amount} to wallet for user ${userId}`);
+      
+      // For demo purposes, we'll just return success
+      res.json({ success: true });
+    } else {
+      res.status(400).json({ error: 'Payment not completed' });
+    }
+  } catch (error) {
+    console.error('Error processing successful payment:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Expose Stripe publishable key
+app.get('/api/stripe-config', (req, res) => {
+  res.json({
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+  });
+});
+
+// Set up a webhook to handle asynchronous events
+app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  
+  try {
+    const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    
+    // Handle the event
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      
+      // Fulfill the order
+      const userId = session.metadata.userId;
+      const amount = parseFloat(session.metadata.amount);
+      
+      // In a real implementation, this would update the user's wallet in Firestore
+      console.log(`Webhook: Adding $${amount} to wallet for user ${userId}`);
+    }
+    
+    res.json({received: true});
+  } catch (err) {
+    console.error('Webhook error:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 });
 

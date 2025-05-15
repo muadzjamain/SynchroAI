@@ -15,6 +15,15 @@ function initializeFirebaseIfNeeded() {
       console.log('Firebase initialized from main.js');
     }
     auth = firebase.auth();
+    // Set persistence to LOCAL to keep the user logged in even when the browser is closed
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .then(() => {
+        console.log('Firebase persistence set to LOCAL');
+      })
+      .catch((error) => {
+        console.error('Error setting persistence:', error);
+      });
+      
     db = firebase.firestore();
     setupAuthObserver();
     return true;
@@ -42,6 +51,8 @@ function setupAuthObserver() {
     if (user) {
       // User is signed in
       console.log("User is signed in:", user.email);
+      
+      // Update all auth-dependent UI elements
       document.querySelectorAll('.auth-user').forEach(el => {
         el.style.display = 'block';
       });
@@ -49,7 +60,13 @@ function setupAuthObserver() {
         el.style.display = 'none';
       });
       
-      // Update user dropdown
+      // Update username in nav dropdown and other places
+      const navUsername = document.getElementById('navUsername');
+      if (navUsername) {
+        navUsername.textContent = user.displayName || user.email;
+      }
+      
+      // Update user dropdown (for older pages using this format)
       const userDropdown = document.getElementById('userDropdown');
       if (userDropdown) {
         const userSpan = userDropdown.querySelector('span');
@@ -58,9 +75,36 @@ function setupAuthObserver() {
         }
       }
       
-      // Load user services if on profile page
-      if (window.location.pathname.includes('profile.html')) {
+      // Page-specific actions for authenticated users
+      const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+      
+      // Display wallet balance in navigation for all pages
+      loadUserWalletBalance(user.uid);
+      
+      // Profile page: Load user services
+      if (currentPage.includes('profile.html')) {
         loadUserServices(user.uid);
+      }
+      
+      // Profile settings page: Load user information
+      if (currentPage.includes('profile-settings.html')) {
+        const userEmail = document.getElementById('userEmail');
+        if (userEmail) {
+          userEmail.textContent = user.email;
+        }
+        
+        const displayName = document.getElementById('displayName');
+        if (displayName) {
+          displayName.value = user.displayName || '';
+        }
+      }
+      
+      // Wallet page: Load wallet balance for the main wallet section
+      if (currentPage.includes('wallet.html')) {
+        const userWalletBalance = document.getElementById('userWalletBalance');
+        if (userWalletBalance && typeof fetchUserWalletBalance === 'function') {
+          fetchUserWalletBalance(user.uid);
+        }
       }
     } else {
       // User is signed out
@@ -73,9 +117,29 @@ function setupAuthObserver() {
       });
       
       // Redirect to login page if on protected page
-      const protectedPages = ['profile.html'];
-      const currentPage = window.location.pathname.split('/').pop();
-      if (protectedPages.includes(currentPage)) {
+      const protectedPages = [
+        'profile.html', 
+        'profile-settings.html', 
+        'wallet.html', 
+        'payment.html',
+        'wallet-success.html'
+      ];
+      
+      const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+      
+      // Check if current page is protected
+      let isProtected = false;
+      for (const page of protectedPages) {
+        if (currentPage.includes(page)) {
+          isProtected = true;
+          break;
+        }
+      }
+      
+      if (isProtected) {
+        console.log(`Redirecting from protected page ${currentPage} to login.html`);
+        // Store the page user was trying to access for redirecting back after login
+        sessionStorage.setItem('redirect_after_login', window.location.href);
         window.location.href = 'login.html';
       }
     }
@@ -101,6 +165,19 @@ function signUp(email, password) {
 // Sign In Function
 function signIn(email, password) {
   return auth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      // Check if there's a redirect URL stored
+      const redirectUrl = sessionStorage.getItem('redirect_after_login');
+      if (redirectUrl) {
+        // Clear the stored URL
+        sessionStorage.removeItem('redirect_after_login');
+        // Redirect the user
+        console.log('Redirecting to:', redirectUrl);
+        window.location.href = redirectUrl;
+        return new Promise(resolve => setTimeout(() => resolve(userCredential), 100));
+      }
+      return userCredential;
+    })
     .catch((error) => {
       console.error("Error signing in:", error);
       throw error;
@@ -123,6 +200,18 @@ function signInWithGoogle() {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         }
+      }).then(() => {
+        // Check if there's a redirect URL stored
+        const redirectUrl = sessionStorage.getItem('redirect_after_login');
+        if (redirectUrl) {
+          // Clear the stored URL
+          sessionStorage.removeItem('redirect_after_login');
+          // Redirect the user
+          console.log('Redirecting after Google sign-in to:', redirectUrl);
+          window.location.href = redirectUrl;
+          return new Promise(resolve => setTimeout(() => resolve(result), 100));
+        }
+        return result;
       });
     })
     .catch((error) => {
@@ -522,43 +611,50 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Handle login form submission
-  const loginForm = document.getElementById('login-form');
-  if (loginForm) {
-    loginForm.addEventListener('submit', function(e) {
+  // Handle sign in form
+  const signInForm = document.getElementById('login-form');
+  if (signInForm) {
+    signInForm.addEventListener('submit', function(e) {
       e.preventDefault();
       
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
-      
-      // Show loading state
-      const submitBtn = loginForm.querySelector('button[type="submit"]');
+      const submitBtn = document.getElementById('sign-in-btn');
       const originalText = submitBtn.textContent;
+      
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Logging in...';
+      submitBtn.textContent = 'Signing in...';
       
       signIn(email, password)
         .then(() => {
-          window.location.href = 'profile.html';
+          // Redirect happens inside signIn function if needed
+          // Otherwise, go to profile
+          if (!sessionStorage.getItem('redirect_after_login')) {
+            window.location.href = 'profile.html';
+          }
         })
         .catch((error) => {
-          alert(`Login failed: ${error.message}`);
+          alert(`Sign in failed: ${error.message}`);
           submitBtn.disabled = false;
           submitBtn.textContent = originalText;
         });
     });
   }
-  
+
   // Handle Google sign-in
   const googleSignInBtn = document.getElementById('google-signin');
   if (googleSignInBtn) {
     googleSignInBtn.addEventListener('click', function() {
       signInWithGoogle()
         .then(() => {
-          window.location.href = 'profile.html';
+          // Redirect happens inside signInWithGoogle function if needed
+          // Otherwise, go to profile
+          if (!sessionStorage.getItem('redirect_after_login')) {
+            window.location.href = 'profile.html';
+          }
         })
         .catch((error) => {
-          alert(`Google sign-in failed: ${error.message}`);
+          alert(`Google sign in failed: ${error.message}`);
         });
     });
   }

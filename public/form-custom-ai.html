@@ -312,6 +312,9 @@
           <li class="nav-item auth-user" style="display: none;">
             <a class="nav-link" href="profile.html">My Services</a>
           </li>
+          <li class="nav-item auth-user" style="display: none;">
+            <a class="nav-link" href="wallet.html">My Wallet <span class="ms-1 badge bg-light text-primary" id="navWalletBalance">$0.00</span></a>
+          </li>
         </ul>
         <!-- Guest Navigation -->
         <div class="auth-guest" style="display: block;">
@@ -324,7 +327,8 @@
             <i class="bi bi-person-circle user-icon"></i><span>User</span>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-            <li><a class="dropdown-item" href="profile.html">My Services</a></li>
+            <li><a class="dropdown-item" href="wallet.html">My Wallet</a></li>
+            <li><a class="dropdown-item" href="profile-settings.html">Account Settings</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
           </ul>
@@ -429,6 +433,7 @@
   
   <!-- Custom JavaScript -->
   <script src="js/main.js"></script>
+  <script src="js/wallet-balance.js"></script>
   <script>
     // Date Time Picker Implementation using Flatpickr
     document.addEventListener('DOMContentLoaded', function() {
