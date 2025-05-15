@@ -3,6 +3,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
+const { google } = require('googleapis');
 require('dotenv').config();
 
 // Initialize Express app
@@ -90,6 +91,74 @@ transporter.verify(function(error, success) {
 // Store submissions in memory for demo purposes
 const inquiries = [];
 
+// Configure Google Calendar API
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
+
+// Set credentials using the refresh token
+if (process.env.GOOGLE_REFRESH_TOKEN) {
+  oauth2Client.setCredentials({
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+  });
+  console.log('Google OAuth2 client configured with refresh token');
+} else {
+  console.warn('Google refresh token not found. Calendar integration will not work.');
+}
+
+// Create a Calendar API client
+const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+
+// Function to create a Google Calendar event with Meet link
+async function createCalendarEvent(summary, description, startDateTime, endDateTime, attendeeEmail) {
+  try {
+    const event = {
+      summary: summary,
+      description: description,
+      start: {
+        dateTime: startDateTime,
+        timeZone: 'Asia/Singapore', // Using Singapore timezone, adjust as needed
+      },
+      end: {
+        dateTime: endDateTime,
+        timeZone: 'Asia/Singapore', // Using Singapore timezone, adjust as needed
+      },
+      attendees: [
+        { email: 'chatgpt.akira@gmail.com' }, // Organizer
+        { email: attendeeEmail }              // Attendee
+      ],
+      conferenceData: {
+        createRequest: {
+          requestId: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+          conferenceSolutionKey: { type: 'hangoutsMeet' }
+        }
+      },
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: 'email', minutes: 60 * 24 }, // 1 day before
+          { method: 'popup', minutes: 30 }        // 30 minutes before
+        ]
+      }
+    };
+
+    const response = await calendar.events.insert({
+      calendarId: 'primary',
+      resource: event,
+      conferenceDataVersion: 1,
+      sendUpdates: 'all'
+    });
+
+    console.log('Calendar event created successfully');
+    return response.data;
+  } catch (error) {
+    console.error('Error creating calendar event:', error.message);
+    throw error;
+  }
+}
+
 // API Routes
 
 // Custom AI Agent form submission endpoint
@@ -101,7 +170,7 @@ app.post('/api/send-inquiry', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Format the meeting date for display
+    // Parse the meeting date for display and calendar creation
     const meetingDate = new Date(meetingDateTime);
     const formattedDate = meetingDate.toLocaleDateString('en-US', { 
       weekday: 'long',
@@ -114,9 +183,51 @@ app.post('/api/send-inquiry', async (req, res) => {
       hour: '2-digit',
       minute: '2-digit'
     });
+    
+    // Calculate end time (1 hour after start time)
+    const endDate = new Date(meetingDate.getTime());
+    endDate.setHours(endDate.getHours() + 1);
+    
+    let meetLink = '';
+    let calendarEventId = '';
+    let eventHtmlLink = '';
+    
+    // Create the Google Calendar event with Meet link if credentials are available
+    if (process.env.GOOGLE_REFRESH_TOKEN) {
+      try {
+        console.log('Creating Google Calendar event with Meet link...');
+        const eventSummary = `SynchroAI Custom AI Agent Consultation - ${businessName}`;
+        const eventDescription = `
+Business: ${businessName}
+Email: ${email}
 
-    // Create a Google Meet link (simulated for now)
-    const meetLink = `https://meet.google.com/abc-defg-hij?authuser=${encodeURIComponent(email)}`;
+AI Requirements:
+${aiRequirements}
+
+This meeting was automatically scheduled through the SynchroAI Custom AI Agent form.`;
+        
+        const eventData = await createCalendarEvent(
+          eventSummary,
+          eventDescription,
+          meetingDate.toISOString(),
+          endDate.toISOString(),
+          email
+        );
+        
+        meetLink = eventData.hangoutLink || '';
+        calendarEventId = eventData.id || '';
+        eventHtmlLink = eventData.htmlLink || '';
+        console.log('Google Meet link created:', meetLink);
+      } catch (calendarError) {
+        console.error('Failed to create calendar event:', calendarError);
+        // Continue with the process even if calendar event creation fails
+        // We'll use a placeholder link in this case
+        meetLink = 'https://meet.google.com/see-email-for-updated-link';
+      }
+    } else {
+      console.warn('Google Calendar credentials not available. Using placeholder Meet link');
+      meetLink = 'https://meet.google.com/see-email-for-updated-link';
+    }
 
     // Store the inquiry in our in-memory array
     const inquiry = {
@@ -127,7 +238,9 @@ app.post('/api/send-inquiry', async (req, res) => {
       formattedDateTime: `${formattedDate} at ${formattedTime}`,
       aiRequirements,
       createdAt: new Date(),
-      meetLink
+      meetLink,
+      calendarEventId,
+      eventHtmlLink
     };
     
     inquiries.push(inquiry);
@@ -146,6 +259,7 @@ app.post('/api/send-inquiry', async (req, res) => {
         <p><strong>AI Requirements:</strong></p>
         <p>${aiRequirements.replace(/\n/g, '<br>')}</p>
         <p><strong>Google Meet Link:</strong> <a href="${meetLink}">${meetLink}</a></p>
+        ${eventHtmlLink ? `<p><strong>Calendar Event:</strong> <a href="${eventHtmlLink}">View in Google Calendar</a></p>` : ''}
       `
     };
 
@@ -160,9 +274,11 @@ app.post('/api/send-inquiry', async (req, res) => {
         <p>We have received your inquiry about our Custom AI Agent service. Our team will review your requirements and meet with you at the scheduled time:</p>
         <p><strong>Meeting Date & Time:</strong> ${formattedDate} at ${formattedTime}</p>
         <p><strong>Google Meet Link:</strong> <a href="${meetLink}">${meetLink}</a></p>
+        ${eventHtmlLink ? `<p><strong>Calendar Event:</strong> This meeting has been added to your Google Calendar. <a href="${eventHtmlLink}">View in Google Calendar</a></p>` : ''}
+        <p>Please click the Google Meet link above at the scheduled time to join the meeting. If you have any questions before then, feel free to reply to this email.</p>
         <p><strong>Your Requirements:</strong></p>
         <p>${aiRequirements.replace(/\n/g, '<br>')}</p>
-        <p>We look forward to discussing how we can help automate your business processes with AI.</p>
+        <p>Thank you for choosing SynchroAI!</p>
         <p>Best regards,<br>The SynchroAI Team</p>
       `
     };
@@ -190,7 +306,9 @@ app.post('/api/send-inquiry', async (req, res) => {
       success: true, 
       message: 'Inquiry sent successfully',
       meetingDateTime: formattedDate + ' at ' + formattedTime,
-      meetLink
+      meetLink,
+      calendarEventUrl: eventHtmlLink || null,
+      calendarEventCreated: !!eventHtmlLink
     });
   } catch (error) {
     console.error('Error processing inquiry:', error);
