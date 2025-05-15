@@ -1,56 +1,15 @@
 require('dotenv').config();
 const express = require('express');
-const path = require('path');
-const bodyParser = require('body-parser');
 const cors = require('cors');
+const bodyParser = require('body-parser');
+const path = require('path');
 const nodemailer = require('nodemailer');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { google } = require('googleapis');
-const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 // Initialize Express app
 const app = express();
-const PORT = 3000; // Fixed to port 3000 as requested
-
-// Function to generate a Google Meet link and create calendar events
-async function createMeetingWithCalendarEvent(businessName, email, meetingDate, meetingTime, requirements) {
-  try {
-    console.log('Creating meeting with calendar event for:', businessName, email);
-    // Parse the meeting date and time
-    const [year, month, day] = meetingDate.split('-').map(num => parseInt(num));
-    const [hours, minutes] = meetingTime.split(':').map(num => parseInt(num));
-    
-    // Create start and end times (1 hour meeting)
-    const startDateTime = new Date(year, month - 1, day, hours, minutes);
-    const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // 1 hour later
-    
-    // Use the existing createCalendarEvent function which is already configured
-    const summary = `Custom AI Consultation: ${businessName}`;
-    const description = `Business Requirements:\n${requirements}\n\nContact: ${email}`;
-    
-    console.log('Calling createCalendarEvent with:', summary, email);
-    const result = await createCalendarEvent(
-      summary,
-      description,
-      startDateTime.toISOString(),
-      endDateTime.toISOString(),
-      email
-    );
-    
-    console.log('Calendar event created successfully:', result);
-    return result;
-  } catch (error) {
-    console.error('Error creating calendar event:', error);
-    // Fallback to a simple Google Meet link if calendar creation fails
-    const meetId = Math.random().toString(36).substring(2, 10);
-    console.log('Using fallback Google Meet link:', meetId);
-    return {
-      meetLink: `https://meet.google.com/${meetId}`,
-      eventId: null,
-      startTime: null,
-      endTime: null
-    };
-  }
-}
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -94,21 +53,15 @@ app.get('/js/env-config.js', (req, res) => {
 // Email configuration using Gmail with App Password from environment variables
 let transporter;
 
-// Configure email transport with detailed logging
-console.log('Setting up email transport with detailed logging');
+// For now, prioritize App Password authentication as it's more reliable
+console.log('Using Gmail App Password for email sending');
 transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD
-  },
-  logger: true, // Enable detailed transport logging
-  debug: true   // Include debug information in logs
+  }
 });
-
-// Log the email credentials being used (without showing the password)
-console.log('Email configured with user:', process.env.EMAIL_USER);
-console.log('Email password provided:', process.env.EMAIL_PASSWORD ? 'Yes' : 'No');
 
 // OAuth2 configuration is available but commented out due to authentication issues
 // To use OAuth2 in the future, uncomment this code and ensure your credentials are correct
@@ -143,34 +96,26 @@ transporter.verify(function(error, success) {
 // Store submissions in memory for demo purposes
 const inquiries = [];
 
-// Configure Google Calendar API
+// Configure Google OAuth2 client setup
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
   process.env.GOOGLE_REDIRECT_URI
 );
 
-// Set credentials using the refresh token
-if (process.env.GOOGLE_REFRESH_TOKEN) {
-  oauth2Client.setCredentials({
-    refresh_token: process.env.GOOGLE_REFRESH_TOKEN
-  });
-  console.log('Google OAuth2 client configured with refresh token');
-} else {
-  console.warn('Google refresh token not found. Calendar integration will not work.');
-}
+// Set credentials using refresh token
+oauth2Client.setCredentials({
+  refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+});
+
+console.log('Google OAuth2 client configured with refresh token');
 
 // Create a Calendar API client
 const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-// Function to create a Google Calendar event with Meet link
+// Function to create a Google Calendar event with Google Meet
 async function createCalendarEvent(summary, description, startDateTime, endDateTime, attendeeEmail) {
   try {
-    console.log('Creating calendar event with the following details:');
-    console.log('- Summary:', summary);
-    console.log('- Attendee:', attendeeEmail);
-    console.log('- Start time:', startDateTime);
-    
     const event = {
       summary: summary,
       description: description,
@@ -184,7 +129,7 @@ async function createCalendarEvent(summary, description, startDateTime, endDateT
       },
       attendees: [
         { email: process.env.EMAIL_USER }, // Organizer (chatgpt.akira@gmail.com)
-        { email: attendeeEmail }              // Attendee
+        { email: attendeeEmail }           // Attendee
       ],
       conferenceData: {
         createRequest: {
@@ -201,11 +146,13 @@ async function createCalendarEvent(summary, description, startDateTime, endDateT
       }
     };
 
+    // Make sure we're using the organizer's calendar
     const response = await calendar.events.insert({
-      calendarId: 'primary',
+      calendarId: 'primary',  // This is the primary calendar of chatgpt.akira@gmail.com
       resource: event,
       conferenceDataVersion: 1,
-      sendUpdates: 'all'
+      sendUpdates: 'all',     // Send email updates to all attendees
+      sendNotifications: true  // Make sure notifications are sent
     });
 
     console.log('Calendar event created successfully');
@@ -217,6 +164,56 @@ async function createCalendarEvent(summary, description, startDateTime, endDateT
 }
 
 // API Routes
+
+// Send Google Meet link for Custom AI Agent consultation
+app.post('/api/send-meet-link', async (req, res) => {
+  try {
+    const { businessName, email, businessNumber, meetingDate, meetingTime, requirements } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    
+    // Convert meeting date and time to ISO format for Google Calendar
+    const [year, month, day] = meetingDate.split('-').map(num => parseInt(num));
+    const [hours, minutes] = meetingTime.split(':').map(num => parseInt(num));
+    
+    // Create a date object with the provided date and time
+    const meetingDateTime = new Date(year, month - 1, day, hours, minutes);
+    const meetingEndTime = new Date(meetingDateTime.getTime() + 60 * 60 * 1000); // Add 1 hour
+    
+    // Create a calendar event with Google Meet
+    const eventSummary = `SynchroAI Consultation with ${businessName}`;
+    const eventDescription = `Business: ${businessName}\nPhone: ${businessNumber}\n\nRequirements: ${requirements}`;
+    
+    const calendarEvent = await createCalendarEvent(
+      eventSummary,
+      eventDescription,
+      meetingDateTime.toISOString(),
+      meetingEndTime.toISOString(),
+      email
+    );
+    
+    // Get the Google Meet link from the calendar event
+    const meetLink = calendarEvent.hangoutLink || calendarEvent.conferenceData?.entryPoints?.[0]?.uri;
+    
+    if (!meetLink) {
+      throw new Error('Failed to generate Google Meet link');
+    }
+    
+    // No custom email is sent - users will only receive the Google Calendar invitation
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Google Calendar invitation sent successfully', 
+      meetLink,
+      calendarEventId: calendarEvent.id
+    });
+  } catch (error) {
+    console.error('Error creating calendar event:', error);
+    res.status(500).json({ error: 'Failed to create calendar event: ' + error.message });
+  }
+});
 
 // Custom AI Agent form submission endpoint
 app.post('/api/send-inquiry', async (req, res) => {
@@ -316,7 +313,7 @@ This meeting was automatically scheduled through the SynchroAI Custom AI Agent f
         <p><strong>AI Requirements:</strong></p>
         <p>${aiRequirements.replace(/\n/g, '<br>')}</p>
         <p><strong>Google Meet Link:</strong> <a href="${meetLink}">${meetLink}</a></p>
-        ${eventHtmlLink ? '<p><strong>Calendar Event:</strong> <a href="' + eventHtmlLink + '">View in Google Calendar</a></p>' : ''}
+        ${eventHtmlLink ? `<p><strong>Calendar Event:</strong> <a href="${eventHtmlLink}">View in Google Calendar</a></p>` : ''}
       `
     };
 
@@ -331,7 +328,7 @@ This meeting was automatically scheduled through the SynchroAI Custom AI Agent f
         <p>We have received your inquiry about our Custom AI Agent service. Our team will review your requirements and meet with you at the scheduled time:</p>
         <p><strong>Meeting Date & Time:</strong> ${formattedDate} at ${formattedTime}</p>
         <p><strong>Google Meet Link:</strong> <a href="${meetLink}">${meetLink}</a></p>
-        ${eventHtmlLink ? '<p><strong>Calendar Event:</strong> This meeting has been added to your Google Calendar. <a href="' + eventHtmlLink + '">View in Google Calendar</a></p>' : ''}
+        ${eventHtmlLink ? `<p><strong>Calendar Event:</strong> This meeting has been added to your Google Calendar. <a href="${eventHtmlLink}">View in Google Calendar</a></p>` : ''}
         <p>Please click the Google Meet link above at the scheduled time to join the meeting. If you have any questions before then, feel free to reply to this email.</p>
         <p><strong>Your Requirements:</strong></p>
         <p>${aiRequirements.replace(/\n/g, '<br>')}</p>
@@ -592,118 +589,12 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
   }
 });
 
-// API endpoint for Custom AI form submissions
-app.post('/api/custom-ai-form', async (req, res) => {
-  try {
-    console.log('Received Custom AI form submission:', req.body);
-    const { businessName, email, businessNumber, meetingDate, meetingTime, requirements } = req.body;
-    
-    // Validate required fields
-    if (!businessName || !email || !businessNumber || !meetingDate || !meetingTime || !requirements) {
-      return res.status(400).json({ error: 'All fields are required' });
-    }
-    
-    console.log('Creating calendar event for meeting at:', meetingDate, meetingTime);
-    // Create calendar event and get Google Meet link
-    const { meetLink, eventId } = await createMeetingWithCalendarEvent(
-      businessName, 
-      email, 
-      meetingDate, 
-      meetingTime, 
-      requirements
-    );
-    
-    const meetingDateTime = `${meetingDate} at ${meetingTime}`;
-    console.log('Generated meeting link:', meetLink);
-    
-    // Always include the test email as a BCC recipient to ensure you receive a copy
-    const testEmail = 'muadz.jamain@gmail.com';
-    
-    // Prepare email to user
-    const userMailOptions = {
-      from: process.env.EMAIL_USER || 'chatgpt.akira@gmail.com',
-      to: email,
-      bcc: testEmail, // Add your test email as BCC to ensure you receive a copy
-      subject: 'Your Custom AI Consultation Appointment',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Thank you for your interest in SynchroAI Custom Solutions!</h2>
-          <p>Dear ${businessName},</p>
-          <p>We're excited to discuss your custom AI requirements. Here's a summary of the information you provided:</p>
-          <ul>
-            <li><strong>Business Name:</strong> ${businessName}</li>
-            <li><strong>Contact Number:</strong> ${businessNumber}</li>
-            <li><strong>Consultation Appointment:</strong> ${meetingDateTime}</li>
-          </ul>
-          <p><strong>Your Requirements:</strong></p>
-          <p style="background-color: #f5f5f5; padding: 10px; border-radius: 5px;">${requirements}</p>
-          <h3>Your Google Meet Appointment</h3>
-          <p>We've scheduled a consultation call for ${meetingDateTime}. Please join using the link below:</p>
-          <p><a href="${meetLink}" style="display: inline-block; background-color: #4285F4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Join Google Meet</a></p>
-          <p>Our AI specialist will be ready to discuss your custom solution needs and answer any questions you may have.</p>
-          <p>This meeting has been added to your Google Calendar. You'll receive a calendar notification before the meeting.</p>
-          <p>If you need to reschedule, please reply to this email or contact us at support@synchroai.com.</p>
-          <p>We look forward to speaking with you!</p>
-          <p>Best regards,<br>The SynchroAI Team</p>
-        </div>
-      `
-    };
-    
-    // Prepare email to website owner and make sure to include the test email
-    const ownerMailOptions = {
-      from: process.env.EMAIL_USER || 'chatgpt.akira@gmail.com',
-      to: ['chatgpt.akira@gmail.com', testEmail], // Include both the owner and test email
-      subject: `New Custom AI Consultation: ${businessName}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>New Custom AI Consultation Request</h2>
-          <p>A new customer has requested a custom AI consultation:</p>
-          <ul>
-            <li><strong>Business Name:</strong> ${businessName}</li>
-            <li><strong>Email:</strong> ${email}</li>
-            <li><strong>Contact Number:</strong> ${businessNumber}</li>
-            <li><strong>Scheduled Meeting:</strong> ${meetingDateTime}</li>
-          </ul>
-          <p><strong>Customer Requirements:</strong></p>
-          <p style="background-color: #f5f5f5; padding: 10px; border-radius: 5px;">${requirements}</p>
-          <h3>Google Meet Link</h3>
-          <p>The consultation is scheduled for ${meetingDateTime}. Join using this link:</p>
-          <p><a href="${meetLink}" style="display: inline-block; background-color: #4285F4; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Join Google Meet</a></p>
-          <p>This meeting has been added to your Google Calendar with event ID: ${eventId || 'Not available'}.</p>
-        </div>
-      `
-    };
-    
-    // Send emails with detailed error handling
-    console.log('Sending user email to:', email, 'with BCC to:', testEmail);
-    try {
-      const userEmailInfo = await transporter.sendMail(userMailOptions);
-      console.log('User email sent successfully. Message ID:', userEmailInfo.messageId);
-    } catch (emailError) {
-      console.error('Error sending user email:', emailError);
-      // Continue execution even if this email fails
-    }
-    
-    console.log('Sending owner email to:', ownerMailOptions.to);
-    try {
-      const ownerEmailInfo = await transporter.sendMail(ownerMailOptions);
-      console.log('Owner email sent successfully. Message ID:', ownerEmailInfo.messageId);
-    } catch (emailError) {
-      console.error('Error sending owner email:', emailError);
-      // Continue execution even if this email fails
-    }
-    
-    res.status(200).json({ success: true, message: 'Form submitted successfully', meetLink, eventId });
-  } catch (error) {
-    console.error('Error processing form submission:', error);
-    res.status(500).json({ error: 'Failed to process your request' });
-  }
-});
-
 // Serve React app in production
 if (process.env.NODE_ENV === 'production') {
+  // Serve static files from the React app build directory
   app.use(express.static(path.join(__dirname, 'client/build')));
   
+  // For any request that doesn't match a route defined above, serve the React app
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
   });
@@ -714,16 +605,7 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Start server on port 3000
-const server = app.listen(PORT, () => {
+// Start server
+app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  console.log('Your SynchroAI website is now available at http://localhost:3000');
-}).on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use. Please free up port 3000 by closing other applications.`);
-    console.error('You can find which process is using port 3000 with: netstat -ano | findstr :3000');
-    console.error('Then kill that process with: taskkill /F /PID <process_id>');
-  } else {
-    console.error('Server error:', err);
-  }
 });
