@@ -86,18 +86,7 @@ function setupAuthObserver() {
         loadUserServices(user.uid);
       }
       
-      // Profile settings page: Load user information
-      if (currentPage.includes('profile-settings.html')) {
-        const userEmail = document.getElementById('userEmail');
-        if (userEmail) {
-          userEmail.textContent = user.email;
-        }
-        
-        const displayName = document.getElementById('displayName');
-        if (displayName) {
-          displayName.value = user.displayName || '';
-        }
-      }
+      // Profile settings page has been removed
       
       // Wallet page: Load wallet balance for the main wallet section
       if (currentPage.includes('wallet.html')) {
@@ -119,7 +108,6 @@ function setupAuthObserver() {
       // Redirect to login page if on protected page
       const protectedPages = [
         'profile.html', 
-        'profile-settings.html', 
         'wallet.html', 
         'payment.html',
         'wallet-success.html'
@@ -440,15 +428,15 @@ function processPayment(paymentMethodId) {
   let serviceName;
   switch (pendingService.serviceType) {
     case 'whatsapp-faq':
-      price = 29.99;
+      price = 90.00;
       serviceName = 'WhatsApp FAQ AI Agent';
       break;
     case 'whatsapp-order':
-      price = 39.99;
+      price = 125.00;
       serviceName = 'WhatsApp Order AI Agent';
       break;
     case 'custom-ai':
-      price = 59.99;
+      price = 199.00; // Starting price for custom AI agent
       serviceName = 'Custom AI Agent';
       break;
     default:
@@ -844,15 +832,15 @@ document.addEventListener('DOMContentLoaded', function() {
       switch (pendingService.serviceType) {
         case 'whatsapp-faq':
           serviceName = 'WhatsApp FAQ AI Agent';
-          price = '$29.99';
+          price = '$90';
           break;
         case 'whatsapp-order':
           serviceName = 'WhatsApp Order AI Agent';
-          price = '$39.99';
+          price = '$125';
           break;
         case 'custom-ai':
           serviceName = 'Custom AI Agent';
-          price = '$59.99';
+          price = '$199-$599';
           break;
       }
       

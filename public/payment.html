@@ -282,7 +282,7 @@
         </div>
         <div class="order-total">
           <span>Total</span>
-          <span id="service-price">$29.99</span>
+          <span id="service-price">$90</span>
         </div>
       </div>
     </div>
@@ -429,20 +429,129 @@
   
   <!-- Custom JavaScript -->
   <script src="js/main.js"></script>
+  <script src="js/env-config.js"></script>
+  <script src="js/wallet-balance.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Get service details from URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const serviceType = urlParams.get('service');
-      const servicePrice = urlParams.get('price');
-      
-      // Update order summary
-      if (serviceType) {
-        document.getElementById('service-type').textContent = serviceType;
+      // Initialize Firebase if not already initialized
+      if (!firebase.apps.length) {
+        const firebaseConfig = window.firebaseConfig || {
+          // Fallback config if env-config.js is not loaded
+          apiKey: "AIzaSyDZTZxYfSACAXTJJXHEQA7aro9dZK0UKTU",
+          authDomain: "synchroai.firebaseapp.com",
+          projectId: "synchroai",
+          storageBucket: "synchroai.appspot.com",
+          messagingSenderId: "1234567890",
+          appId: "1:1234567890:web:abcdef1234567890"
+        };
+        firebase.initializeApp(firebaseConfig);
       }
       
-      if (servicePrice) {
-        document.getElementById('service-price').textContent = `$${servicePrice}`;
+      // Set persistence to LOCAL to ensure auth state is persisted across page reloads
+      firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      
+      // Check authentication state
+      firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+          console.log('User is signed in:', user.email);
+          
+          // Update UI for authenticated user
+          const authUser = document.querySelector('.auth-user');
+          const authGuest = document.querySelector('.auth-guest');
+          if (authUser) authUser.style.display = 'block';
+          if (authGuest) authGuest.style.display = 'none';
+          
+          // Update username in dropdown
+          const userNameSpan = document.querySelector('#userDropdown span');
+          if (userNameSpan) {
+            userNameSpan.textContent = user.displayName || user.email;
+          }
+          
+          // Pre-fill email field
+          const emailInput = document.getElementById('email');
+          if (emailInput && !emailInput.value) {
+            emailInput.value = user.email || '';
+          }
+          
+          // Store auth token in localStorage to help maintain authentication state
+          user.getIdToken(true).then(function(idToken) {
+            localStorage.setItem('firebaseAuthToken', idToken);
+          }).catch(function(error) {
+            console.error('Error getting auth token:', error);
+          });
+          
+          // Load wallet balance
+          loadUserWalletBalance(user.uid);
+          
+          // Get pending service from localStorage
+          const pendingService = JSON.parse(localStorage.getItem('pendingService'));
+          if (pendingService) {
+            // Update order summary
+            const serviceTypeEl = document.getElementById('service-type');
+            const servicePriceEl = document.getElementById('service-price');
+            
+            if (serviceTypeEl && pendingService.serviceType) {
+              const serviceDisplayName = getServiceDisplayName(pendingService.serviceType);
+              serviceTypeEl.textContent = serviceDisplayName;
+            }
+            
+            if (servicePriceEl) {
+              const price = getServicePrice(pendingService.serviceType);
+              servicePriceEl.textContent = `$${price}`;
+              window.serviceCreditPrice = price; // Store for later use
+            }
+          }
+        } else {
+          console.log('User might be authenticating, checking for stored credentials...');
+          
+          // Check if we have a stored auth token before redirecting
+          const storedToken = localStorage.getItem('firebaseAuthToken');
+          if (storedToken) {
+            console.log('Found stored authentication token, attempting to sign in with it...');
+            // Give Firebase a moment to validate the token and complete authentication
+            setTimeout(() => {
+              // Check again after waiting
+              if (!firebase.auth().currentUser) {
+                console.log('Still not authenticated after token check, redirecting to login');
+                sessionStorage.setItem('redirect_after_login', window.location.href);
+                window.location.href = 'login.html';
+              }
+            }, 1000);
+          } else {
+            console.log('No stored authentication found, redirecting to login');
+            // Redirect to login page with return URL
+            sessionStorage.setItem('redirect_after_login', window.location.href);
+            window.location.href = 'login.html';
+          }
+        }
+      });
+      
+      // Helper function to get service display name
+      function getServiceDisplayName(serviceType) {
+        switch(serviceType) {
+          case 'whatsapp-faq':
+            return 'WhatsApp FAQ AI Agent';
+          case 'whatsapp-order':
+            return 'WhatsApp Order AI Agent';
+          case 'custom-ai':
+            return 'Custom AI Agent';
+          default:
+            return 'AI Service';
+        }
+      }
+      
+      // Helper function to get service price
+      function getServicePrice(serviceType) {
+        switch(serviceType) {
+          case 'whatsapp-faq':
+            return 90;
+          case 'whatsapp-order':
+            return 120;
+          case 'custom-ai':
+            return 250;
+          default:
+            return 0;
+        }
       }
       
       // Load Stripe public key from environment variables via a server endpoint
@@ -630,13 +739,116 @@
         // In a real implementation, you would send this to your server
         // For this example, we'll simulate a successful payment
         
-        setTimeout(() => {
-          // Simulate successful payment
+        // Get the current user
+        const user = firebase.auth().currentUser;
+        if (!user) {
+          alert('You must be logged in to complete this purchase.');
+          window.location.href = 'login.html';
+          return;
+        }
+        
+        // Get the pending service from localStorage
+        const pendingService = JSON.parse(localStorage.getItem('pendingService'));
+        if (!pendingService) {
+          alert('No pending service found. Please start over.');
+          window.location.href = 'index.html';
+          return;
+        }
+        
+        const db = firebase.firestore();
+        
+        // Create a new service record in Firestore
+        db.collection('services').add({
+          userId: user.uid,
+          serviceType: pendingService.serviceType,
+          formData: pendingService.formData,
+          status: 'active',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          paymentId: paymentMethodId,
+          paymentAmount: getServicePrice(pendingService.serviceType)
+        })
+        .then((docRef) => {
+          console.log('Service created with ID: ', docRef.id);
+          
+          // Create transaction record
+          return db.collection('transactions').add({
+            userId: user.uid,
+            serviceId: docRef.id,
+            amount: getServicePrice(pendingService.serviceType),
+            type: 'payment',
+            description: `Payment for ${getServiceDisplayName(pendingService.serviceType)}`,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        })
+        .then(() => {
+          // Update user's wallet balance if using wallet payment
+          const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+          if (paymentMethod === 'web-credit') {
+            return db.collection('users').doc(user.uid).update({
+              walletBalance: firebase.firestore.FieldValue.increment(-getServicePrice(pendingService.serviceType))
+            });
+          }
+          return Promise.resolve();
+        })
+        .then(() => {
+          // Clear the pending service from localStorage
+          localStorage.removeItem('pendingService');
+          
+          // Show success message
           alert('Payment successful! Your AI service has been activated.');
           
-          // Redirect to profile page
-          window.location.href = 'profile.html';
-        }, 2000);
+          // Store auth token in localStorage to ensure persistent authentication across pages
+          firebase.auth().currentUser.getIdToken(true).then(function(idToken) {
+            // Store the token to help maintain authenticated state during redirects
+            localStorage.setItem('firebaseAuthToken', idToken);
+            
+            // Add a delay before redirecting to ensure auth state is fully processed
+            setTimeout(() => {
+              // Redirect to profile page
+              window.location.href = 'profile.html';
+            }, 500);
+          }).catch(function(error) {
+            console.error('Error getting auth token:', error);
+            // Redirect anyway
+            window.location.href = 'profile.html';
+          });
+        })
+        .catch((error) => {
+          console.error('Error creating service:', error);
+          alert('There was an error processing your payment. Please try again.');
+          // Re-enable the submit button
+          const submitButton = document.getElementById('submit-button');
+          submitButton.disabled = false;
+          submitButton.textContent = 'Complete Payment';
+        });
+      }
+      
+      // Helper function to get service price based on type
+      function getServicePrice(serviceType) {
+        switch(serviceType) {
+          case 'whatsapp-faq':
+            return 90;
+          case 'whatsapp-order':
+            return 120;
+          case 'custom-ai':
+            return 250;
+          default:
+            return 0;
+        }
+      }
+      
+      // Helper function to get service display name
+      function getServiceDisplayName(serviceType) {
+        switch(serviceType) {
+          case 'whatsapp-faq':
+            return 'WhatsApp FAQ AI Agent';
+          case 'whatsapp-order':
+            return 'WhatsApp Order AI Agent';
+          case 'custom-ai':
+            return 'Custom AI Agent';
+          default:
+            return 'AI Service';
+        }
       }
     });
   </script>

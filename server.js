@@ -540,10 +540,21 @@ app.post('/webhook', express.raw({type: 'application/json'}), async (req, res) =
   }
 });
 
-// HTML Routes - Serve the SPA for all other routes
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// Serve React app in production
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files from the React app build directory
+  app.use(express.static(path.join(__dirname, 'client/build')));
+  
+  // For any request that doesn't match a route defined above, serve the React app
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+  });
+} else {
+  // In development, serve from public directory for backward compatibility
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  });
+}
 
 // Start server
 app.listen(PORT, () => {

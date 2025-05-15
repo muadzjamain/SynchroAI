@@ -231,7 +231,7 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
             <li><a class="dropdown-item" href="wallet.html">My Wallet</a></li>
-            <li><a class="dropdown-item" href="profile-settings.html">Account Settings</a></li>
+
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
           </ul>
@@ -387,8 +387,7 @@
         
         <div class="price-card">
           <div class="price-title">WhatsApp Order AI Agent</div>
-          <div class="price-amount">$49.99</div>
-          <div class="price-period">per month</div>
+          <div class="price-amount">$125</div>
           <ul class="price-features">
             <li><i class="bi bi-check-circle"></i> Automated order processing</li>
             <li><i class="bi bi-check-circle"></i> Payment confirmation handling</li>
@@ -418,17 +417,75 @@
   
   <!-- Custom JavaScript -->
   <script src="js/main.js"></script>
+  <script src="js/env-config.js"></script>
   <script src="js/wallet-balance.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      // Check if we're in edit mode
+      const urlParams = new URLSearchParams(window.location.search);
+      const editServiceId = urlParams.get('edit');
+      let isEditMode = false;
+      let originalServiceData = null;
+      
+      // Update page title and button text if in edit mode
+      if (editServiceId) {
+        isEditMode = true;
+        document.querySelector('h1.page-title').textContent = 'Edit WhatsApp Order AI Agent';
+        document.querySelector('button[type="submit"]').textContent = 'Update Service';
+        
+        // Load the service data from localStorage
+        const editingService = JSON.parse(localStorage.getItem('editingService'));
+        if (editingService && editingService.id === editServiceId) {
+          originalServiceData = editingService.data;
+          populateFormWithServiceData(originalServiceData);
+        } else {
+          // If not found in localStorage, fetch from Firestore
+          const db = firebase.firestore();
+          db.collection('services').doc(editServiceId).get()
+            .then(doc => {
+              if (doc.exists) {
+                originalServiceData = doc.data();
+                populateFormWithServiceData(originalServiceData);
+              } else {
+                alert('Service not found. It may have been deleted.');
+                window.location.href = 'profile.html';
+              }
+            })
+            .catch(error => {
+              console.error('Error fetching service for editing:', error);
+              alert('Error loading service data. Please try again.');
+            });
+        }
+      }
+      
+      // Function to populate form with service data
+      function populateFormWithServiceData(serviceData) {
+        const formData = serviceData.formData || {};
+        
+        // Populate form fields
+        document.getElementById('businessName').value = formData.businessName || '';
+        document.getElementById('email').value = formData.email || '';
+        document.getElementById('businessType').value = formData.businessType || '';
+        document.getElementById('whatsappNumber').value = formData.whatsappNumber || '';
+        document.getElementById('businessDescription').value = formData.businessDescription || '';
+        document.getElementById('productsServices').value = formData.productsServices || '';
+        document.getElementById('orderProcess').value = formData.orderProcess || '';
+        document.getElementById('specialRequirements').value = formData.specialRequirements || '';
+        
+        // Display file names if available
+        if (formData.productCatalogueFileName) {
+          document.getElementById('productCatalogueFileLabel').textContent = formData.productCatalogueFileName;
+        }
+      }
+      
       // The main.js script will handle authentication state through setupAuthObserver
       // We just need to make sure the email field is filled when a user is authenticated
       firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
-          // Set email field if available
-          const emailInput = document.getElementById('email');
-          if (emailInput && !emailInput.value) {
-            emailInput.value = user.email || '';
+          // User is signed in, update email field
+          const emailField = document.getElementById('email');
+          if (emailField && !emailField.value && !isEditMode) {
+            emailField.value = user.email || '';
           }
         }
       });
@@ -547,9 +604,49 @@
       
       console.log('Form data:', formData);
       
-      // Submit the form data
-      submitServiceForm('whatsapp-order', formData);
+      // Check if we're in edit mode
+      if (isEditMode && editServiceId) {
+        // Update existing service
+        updateExistingService(editServiceId, 'whatsapp-order', formData);
+      } else {
+        // Submit as new service
+        submitServiceForm('whatsapp-order', formData);
+      }
     });
+    
+    // Function to update an existing service
+    function updateExistingService(serviceId, serviceType, formData) {
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+      
+      // Show confirmation dialog
+      if (confirm('Are you sure you want to update this service?')) {
+        const db = firebase.firestore();
+        
+        // Update the service in Firestore
+        db.collection('services').doc(serviceId).update({
+          formData: formData,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(() => {
+          // Clear the editing service from localStorage
+          localStorage.removeItem('editingService');
+          
+          // Show success message
+          alert('Service updated successfully!');
+          
+          // Redirect to profile page
+          window.location.href = 'profile.html';
+        })
+        .catch(error => {
+          console.error('Error updating service:', error);
+          alert('Error updating service. Please try again.');
+        });
+      }
+    }
   </script>
 </body>
 </html>

@@ -183,7 +183,7 @@
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
             <li><a class="dropdown-item" href="wallet.html">My Wallet</a></li>
-            <li><a class="dropdown-item" href="profile-settings.html">Account Settings</a></li>
+
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="#" id="sign-out">Sign Out</a></li>
           </ul>
@@ -205,42 +205,12 @@
     
     <div id="services-container">
       <!-- Service items will be dynamically loaded here -->
-      
-      <!-- Example of a service item (WhatsApp FAQ AI Agent) -->
-      <div class="card service-item">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h5 class="mb-1">WhatsApp FAQ AI Agent</h5>
-              <span class="badge badge-active">Active</span>
-              <p class="text-muted small mb-0">Created on May 12, 2025</p>
-            </div>
-            <div>
-              <button class="btn btn-outline-primary btn-sm me-2">Update</button>
-              <button class="btn btn-outline-warning btn-sm me-2">Pause</button>
-              <button class="btn btn-outline-danger btn-sm">Delete</button>
-            </div>
-          </div>
-        </div>
+      <div id="no-services-message" class="alert alert-info" style="display: none;">
+        <i class="bi bi-info-circle me-2"></i> You don't have any active AI services yet. <a href="index.html#services" class="alert-link">Browse our services</a> to get started.      
       </div>
       
-      <!-- Example of a service item (Custom AI Agent) -->
-      <div class="card service-item">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h5 class="mb-1">Custom AI Agent</h5>
-              <span class="badge badge-paused">Paused</span>
-              <p class="text-muted small mb-0">Created on May 10, 2025</p>
-            </div>
-            <div>
-              <button class="btn btn-outline-primary btn-sm me-2">Update</button>
-              <button class="btn btn-outline-success btn-sm me-2">Activate</button>
-              <button class="btn btn-outline-danger btn-sm">Delete</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Service items will be loaded here dynamically -->
+    </div>
     </div>
   </div>
 
@@ -264,6 +234,9 @@
         if (user) {
           // User is signed in, fetch their credit balance
           fetchUserCredits(user.uid);
+          
+          // Load user services
+          loadUserServices(user.uid);
         }
       });
     });
@@ -291,6 +264,326 @@
         .catch(error => {
           console.error('Error fetching user wallet balance:', error);
         });
+    }
+    
+    // Load user services from Firestore
+    function loadUserServices(userId) {
+      const servicesContainer = document.getElementById('services-container');
+      const noServicesMessage = document.getElementById('no-services-message');
+      
+      const db = firebase.firestore();
+      db.collection('services')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .get()
+        .then(snapshot => {
+          if (snapshot.empty) {
+            // Show no services message
+            noServicesMessage.style.display = 'block';
+            return;
+          }
+          
+          // Hide no services message
+          noServicesMessage.style.display = 'none';
+          
+          // Clear any existing service items (except the no-services-message)
+          const existingItems = servicesContainer.querySelectorAll('.service-item');
+          existingItems.forEach(item => {
+            servicesContainer.removeChild(item);
+          });
+          
+          // Add each service to the container
+          snapshot.forEach(doc => {
+            const service = doc.data();
+            const serviceId = doc.id;
+            
+            // Create service item element
+            const serviceItem = createServiceItem(service, serviceId);
+            
+            // Add to container
+            servicesContainer.appendChild(serviceItem);
+          });
+        })
+        .catch(error => {
+          console.error('Error loading services:', error);
+        });
+    }
+    
+    // Helper function to create a service item element
+    function createServiceItem(service, serviceId) {
+      const serviceItem = document.createElement('div');
+      serviceItem.className = 'card service-item';
+      serviceItem.dataset.serviceId = serviceId;
+      
+      // Format the creation date
+      const createdAt = service.createdAt ? new Date(service.createdAt.toDate()) : new Date();
+      const formattedDate = createdAt.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      
+      // Get service display name based on type
+      const serviceDisplayName = getServiceDisplayName(service.serviceType);
+      
+      // Generate action buttons based on service type
+      let actionButtons = '';
+      
+      // Common buttons for all services
+      const statusButton = service.status === 'active' ? 
+        `<button class="btn btn-outline-warning btn-sm me-2" onclick="toggleServiceStatus('${serviceId}', 'pause')">Pause</button>` : 
+        `<button class="btn btn-outline-success btn-sm me-2" onclick="toggleServiceStatus('${serviceId}', 'activate')">Activate</button>`;
+      
+      const deleteButton = `<button class="btn btn-outline-danger btn-sm" onclick="deleteService('${serviceId}')">Delete</button>`;
+      
+      // Service-specific buttons
+      if (service.serviceType === 'whatsapp-faq') {
+        // WhatsApp FAQ AI Agent: Edit, Pause/Activate, Delete
+        actionButtons = `
+          <button class="btn btn-outline-primary btn-sm me-2" onclick="editService('${serviceId}', '${service.serviceType}')">Edit</button>
+          ${statusButton}
+          ${deleteButton}
+        `;
+      } else if (service.serviceType === 'whatsapp-order') {
+        // WhatsApp Order AI Agent: View, Edit, Pause/Activate, Delete
+        actionButtons = `
+          <button class="btn btn-outline-info btn-sm me-2" onclick="viewService('${serviceId}', '${service.serviceType}')">View</button>
+          <button class="btn btn-outline-primary btn-sm me-2" onclick="editService('${serviceId}', '${service.serviceType}')">Edit</button>
+          ${statusButton}
+          ${deleteButton}
+        `;
+      } else {
+        // Default buttons for other service types
+        actionButtons = `
+          <button class="btn btn-outline-primary btn-sm me-2" onclick="updateService('${serviceId}', '${service.serviceType}')">Update</button>
+          ${statusButton}
+          ${deleteButton}
+        `;
+      }
+      
+      // Generate service HTML
+      serviceItem.innerHTML = `
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="mb-1">${serviceDisplayName}</h5>
+              <span class="badge badge-${service.status === 'active' ? 'active' : 'paused'}">${service.status === 'active' ? 'Active' : 'Paused'}</span>
+              <p class="text-muted small mb-0">Created on ${formattedDate}</p>
+            </div>
+            <div class="service-actions">
+              ${actionButtons}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      return serviceItem;
+    }
+    
+    // Helper function to get service display name based on type
+    function getServiceDisplayName(serviceType) {
+      switch(serviceType) {
+        case 'whatsapp-faq':
+          return 'WhatsApp FAQ AI Agent';
+        case 'whatsapp-order':
+          return 'WhatsApp Order AI Agent';
+        case 'custom-ai':
+          return 'Custom AI Agent';
+        default:
+          return 'AI Service';
+      }
+    }
+    
+    // Function to edit a WhatsApp FAQ or Order service
+    function editService(serviceId, serviceType) {
+      // Get the service data from Firestore
+      const db = firebase.firestore();
+      db.collection('services').doc(serviceId).get()
+        .then(doc => {
+          if (doc.exists) {
+            const serviceData = doc.data();
+            
+            // Store the service data in localStorage for editing
+            localStorage.setItem('editingService', JSON.stringify({
+              id: serviceId,
+              type: serviceType,
+              data: serviceData
+            }));
+            
+            // Redirect to the appropriate form page
+            if (serviceType === 'whatsapp-faq') {
+              window.location.href = 'form-whatsapp-faq.html?edit=' + serviceId;
+            } else if (serviceType === 'whatsapp-order') {
+              window.location.href = 'form-whatsapp-order.html?edit=' + serviceId;
+            }
+          } else {
+            alert('Service not found. It may have been deleted.');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching service for editing:', error);
+          alert('Error loading service data. Please try again.');
+        });
+    }
+    
+    // Function to view a WhatsApp Order service details
+    function viewService(serviceId, serviceType) {
+      // Get the service data from Firestore
+      const db = firebase.firestore();
+      db.collection('services').doc(serviceId).get()
+        .then(doc => {
+          if (doc.exists) {
+            const serviceData = doc.data();
+            
+            // Create a modal to display the service details
+            const modalId = 'serviceDetailsModal';
+            let modal = document.getElementById(modalId);
+            
+            // Remove existing modal if it exists
+            if (modal) {
+              document.body.removeChild(modal);
+            }
+            
+            // Create new modal
+            modal = document.createElement('div');
+            modal.id = modalId;
+            modal.className = 'modal fade';
+            modal.setAttribute('tabindex', '-1');
+            modal.setAttribute('aria-labelledby', 'serviceDetailsModalLabel');
+            modal.setAttribute('aria-hidden', 'true');
+            
+            // Format the creation date
+            const createdAt = serviceData.createdAt ? new Date(serviceData.createdAt.toDate()) : new Date();
+            const formattedDate = createdAt.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            });
+            
+            // Get form data details
+            const formData = serviceData.formData || {};
+            let formDetailsHTML = '';
+            
+            if (serviceType === 'whatsapp-order') {
+              formDetailsHTML = `
+                <h6>Business Information:</h6>
+                <p><strong>Business Name:</strong> ${formData.businessName || 'N/A'}</p>
+                <p><strong>Business Type:</strong> ${formData.businessType || 'N/A'}</p>
+                <p><strong>WhatsApp Number:</strong> ${formData.whatsappNumber || 'N/A'}</p>
+                <p><strong>Business Description:</strong> ${formData.businessDescription || 'N/A'}</p>
+                
+                <h6>Order Processing Details:</h6>
+                <p><strong>Products/Services:</strong> ${formData.productsServices || 'N/A'}</p>
+                <p><strong>Order Process:</strong> ${formData.orderProcess || 'N/A'}</p>
+                <p><strong>Special Requirements:</strong> ${formData.specialRequirements || 'N/A'}</p>
+              `;
+            }
+            
+            // Create modal content
+            modal.innerHTML = `
+              <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="serviceDetailsModalLabel">${getServiceDisplayName(serviceType)} Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="service-details">
+                      <p><strong>Service ID:</strong> ${serviceId}</p>
+                      <p><strong>Status:</strong> <span class="badge badge-${serviceData.status === 'active' ? 'active' : 'paused'}">${serviceData.status === 'active' ? 'Active' : 'Paused'}</span></p>
+                      <p><strong>Created On:</strong> ${formattedDate}</p>
+                      <p><strong>Payment Amount:</strong> $${serviceData.paymentAmount || 0}</p>
+                      
+                      <hr>
+                      ${formDetailsHTML}
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="editService('${serviceId}', '${serviceType}')">Edit Service</button>
+                  </div>
+                </div>
+              </div>
+            `;
+            
+            // Add modal to document
+            document.body.appendChild(modal);
+            
+            // Initialize and show the modal
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+          } else {
+            alert('Service not found. It may have been deleted.');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching service details:', error);
+          alert('Error loading service details. Please try again.');
+        });
+    }
+    
+    // Function to handle service status toggle (pause/activate)
+    function toggleServiceStatus(serviceId, action) {
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      
+      const newStatus = action === 'activate' ? 'active' : 'paused';
+      const confirmMessage = action === 'activate' ? 
+        'Are you sure you want to activate this service?' : 
+        'Are you sure you want to pause this service?';
+      
+      if (confirm(confirmMessage)) {
+        const db = firebase.firestore();
+        db.collection('services').doc(serviceId).update({
+          status: newStatus,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(() => {
+          alert(`Service ${action === 'activate' ? 'activated' : 'paused'} successfully.`);
+          loadUserServices(user.uid); // Reload services
+        })
+        .catch(error => {
+          console.error('Error updating service status:', error);
+          alert('Failed to update service status. Please try again.');
+        });
+      }
+    }
+    
+    // Function to handle service deletion
+    function deleteService(serviceId) {
+      const user = firebase.auth().currentUser;
+      if (!user) return;
+      
+      if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
+        const db = firebase.firestore();
+        db.collection('services').doc(serviceId).delete()
+        .then(() => {
+          alert('Service deleted successfully.');
+          loadUserServices(user.uid); // Reload services
+        })
+        .catch(error => {
+          console.error('Error deleting service:', error);
+          alert('Failed to delete service. Please try again.');
+        });
+      }
+    }
+    
+    // Function to handle service update
+    function updateService(serviceId, serviceType) {
+      // Redirect to the appropriate form page with the service ID
+      switch(serviceType) {
+        case 'whatsapp-faq':
+          window.location.href = `form-whatsapp-faq.html?id=${serviceId}`;
+          break;
+        case 'whatsapp-order':
+          window.location.href = `form-whatsapp-order.html?id=${serviceId}`;
+          break;
+        case 'custom-ai':
+          window.location.href = `form-custom-ai.html?id=${serviceId}`;
+          break;
+        default:
+          alert('Unknown service type.');
+      }
     }
   </script>
 </body>

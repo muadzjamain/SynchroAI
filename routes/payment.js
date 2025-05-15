@@ -7,9 +7,9 @@ const { collection, addDoc, serverTimestamp } = require('firebase/firestore');
 
 // Service pricing (in USD)
 const PRICING = {
-  'whatsapp-faq': 29.99,
-  'whatsapp-order': 49.99,
-  'custom-ai': 99.99
+  'whatsapp-faq': 90,
+  'whatsapp-order': 125,
+  'custom-ai': 199
 };
 
 // Payment page
