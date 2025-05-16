@@ -35,7 +35,7 @@ fetch('/api/firebase-config')
   })
   .catch(error => {
     console.error('Error loading Firebase configuration:', error);
-    // Fallback configuration for development only
+    // Use hardcoded configuration since API endpoint is not working
     window.firebaseConfig = {
       apiKey: "AIzaSyCeX1jXKKXLd0SrjUCnElMmQPsvQ_eMZaw",
       authDomain: "syncroai1.firebaseapp.com",

@@ -27,14 +27,15 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const initializeFirebase = () => {
       try {
-        // Use environment variables directly
+        // Use environment variables directly with fallback to hardcoded values
         const firebaseConfig = {
-          apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-          authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-          projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-          storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-          messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-          appId: process.env.REACT_APP_FIREBASE_APP_ID
+          apiKey: "AIzaSyCeX1jXKKXLd0SrjUCnElMmQPsvQ_eMZaw",
+          authDomain: "syncroai1.firebaseapp.com",
+          projectId: "syncroai1",
+          storageBucket: "syncroai1.firebasestorage.app",
+          messagingSenderId: "230755461319",
+          appId: "1:230755461319:web:a5b750a2daade9dea1b6e2",
+          measurementId: "G-K143JY5CMM"
         };
         
         // Initialize Firebase
