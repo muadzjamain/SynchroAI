@@ -23,17 +23,19 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState('');
   const [firebaseInitialized, setFirebaseInitialized] = useState(false);
   
-  // Initialize Firebase when config is available
+  // Initialize Firebase with environment variables
   useEffect(() => {
-    const initializeFirebase = async () => {
+    const initializeFirebase = () => {
       try {
-        // Fetch Firebase config from server
-        const response = await fetch('/api/firebase-config');
-        if (!response.ok) {
-          throw new Error('Failed to fetch Firebase configuration');
-        }
-        
-        const firebaseConfig = await response.json();
+        // Use environment variables directly
+        const firebaseConfig = {
+          apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+          authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+          projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+          storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+          messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+          appId: process.env.REACT_APP_FIREBASE_APP_ID
+        };
         
         // Initialize Firebase
         initializeApp(firebaseConfig);
