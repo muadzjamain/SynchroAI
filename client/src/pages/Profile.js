@@ -25,7 +25,9 @@ import {
   Tooltip,
   Avatar,
   LinearProgress,
-  Skeleton
+  Skeleton,
+  AppBar,
+  Toolbar
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -37,6 +39,7 @@ import PauseCircleIcon from '@mui/icons-material/PauseCircle';
 import PlayCircleIcon from '@mui/icons-material/PlayCircle';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import SettingsIcon from '@mui/icons-material/Settings';
+import HomeIcon from '@mui/icons-material/Home';
 import { getFirestore, collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -225,57 +228,113 @@ const Profile = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header with blue gradient like example 3 */}
+      {/* Modern Header with enhanced UI */}
       <Paper 
         elevation={0}
         sx={{ 
-          p: 4, 
+          p: 0, 
           mb: 4, 
-          borderRadius: 2,
-          background: 'linear-gradient(90deg, #1976d2 0%, #21CBF3 100%)',
+          borderRadius: 3,
+          background: 'linear-gradient(135deg, #1976d2 0%, #21CBF3 100%)',
           color: 'white',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
+          overflow: 'hidden',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
         }}
       >
-        <Box>
-          <Typography variant="h4" component="h1" fontWeight="bold" color="white" sx={{ mb: 1 }}>
-            My Services
-          </Typography>
-          <Typography variant="subtitle1" color="white" sx={{ opacity: 0.9 }}>
-            Welcome, {currentUser?.displayName || 'User'}
-          </Typography>
-          <Button
-            variant="contained"
-            color="secondary"
-            startIcon={<SmartToyIcon />}
-            sx={{ mt: 2, borderRadius: 8, bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
-          >
-            {services.length} AI {services.length === 1 ? 'Agent' : 'Agents'}
-          </Button>
+        
+        <Box sx={{ 
+          p: 4,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: { xs: 'wrap', sm: 'nowrap' }
+        }}>
+          <Box sx={{ mb: { xs: 3, sm: 0 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+              <Avatar 
+                src={currentUser?.photoURL} 
+                alt={currentUser?.displayName || 'User'}
+                sx={{ 
+                  width: 48, 
+                  height: 48, 
+                  mr: 2,
+                  border: '2px solid white',
+                  bgcolor: 'primary.dark'
+                }}
+              >
+                {(currentUser?.displayName || 'U')[0].toUpperCase()}
+              </Avatar>
+              <Box>
+                <Typography variant="h4" component="h1" fontWeight="bold" color="white">
+                  My Services
+                </Typography>
+                <Typography variant="subtitle1" color="white" sx={{ opacity: 0.9 }}>
+                  Welcome, {currentUser?.displayName || 'User'}
+                </Typography>
+              </Box>
+            </Box>
+            
+            <Box sx={{ display: 'flex', mt: 3 }}>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<SmartToyIcon />}
+                sx={{ 
+                  borderRadius: 8, 
+                  bgcolor: 'rgba(255,255,255,0.15)', 
+                  color: 'white',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                  backdropFilter: 'blur(10px)',
+                  px: 2
+                }}
+              >
+                {services.length} AI {services.length === 1 ? 'Agent' : 'Agents'}
+              </Button>
 
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<AccountBalanceWalletIcon />}
+                component={RouterLink}
+                to="/wallet"
+                sx={{ 
+                  ml: 2, 
+                  borderRadius: 8, 
+                  bgcolor: 'rgba(255,255,255,0.15)', 
+                  color: 'white',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                  backdropFilter: 'blur(10px)',
+                  px: 2
+                }}
+              >
+                Topup Wallet
+              </Button>
+            </Box>
+          </Box>
+          
           <Button
             variant="contained"
             color="secondary"
-            startIcon={<AccountBalanceWalletIcon  />}
+            startIcon={<AddIcon />}
             component={RouterLink}
-            to="/wallet"
-            sx={{ mt: 2, borderRadius: 8, bgcolor: 'rgba(255,255,255,0.2)', color: 'white', ml: 2 }}
+            to="/"
+            sx={{ 
+              borderRadius: 30, 
+              px: 3, 
+              py: 1.2,
+              bgcolor: 'white', 
+              color: 'primary.main',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+              '&:hover': {
+                bgcolor: 'white',
+                boxShadow: '0 6px 15px rgba(0,0,0,0.2)'
+              }
+            }}
           >
-            Topup Wallet
+            Add New Service
           </Button>
         </Box>
-        <Button
-          variant="contained"
-          color="secondary"
-          startIcon={<AddIcon />}
-          component={RouterLink}
-          to="/"
-          sx={{ borderRadius: 30, px: 3, bgcolor: 'white', color: 'primary.main' }}
-        >
-          Add New Service
-        </Button>
       </Paper>
       
       {/* Error Alert */}

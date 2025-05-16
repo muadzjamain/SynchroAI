@@ -16,7 +16,8 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemIcon
+  ListItemIcon,
+  Avatar
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -64,7 +65,7 @@ const Header = () => {
   };
 
   return (
-    <AppBar position="static" sx={{ bgcolor: 'primary.main' }}>
+    <AppBar position="static" sx={{ bgcolor: '#3861fb', boxShadow: 'none' }}>
       <Toolbar>
         {isMobile && (
           <IconButton
@@ -80,7 +81,7 @@ const Header = () => {
         
         <RouterLink to="/" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center' }}>
           <SmartToyIcon sx={{ mr: 1 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 700 }}>
+          <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
             SynchroAI
           </Typography>
         </RouterLink>
@@ -89,36 +90,44 @@ const Header = () => {
         
         {!isMobile && (
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Button color="inherit" component={RouterLink} to="/">
+            <Button 
+              color="inherit" 
+              component={RouterLink} 
+              to="/"
+              startIcon={<HomeIcon />}
+              sx={{ mr: 1 }}
+            >
               Home
             </Button>
             
             {currentUser && (
               <>
-                <Button color="inherit" component={RouterLink} to="/profile">
-                  My Services
-                </Button>
                 <Button 
                   color="inherit" 
                   component={RouterLink} 
-                  to="/wallet"
-                  sx={{ display: 'flex', alignItems: 'center' }}
+                  to="/profile"
+                  sx={{ mr: 1 }}
                 >
-                  My Wallet
-                  <Badge 
-                    color="secondary" 
-                    badgeContent={`$${walletBalance.toFixed(2)}`}
-                    sx={{ 
-                      ml: 1,
-                      '& .MuiBadge-badge': {
-                        bgcolor: 'background.paper',
-                        color: 'primary.main',
-                        fontWeight: 'bold'
-                      }
-                    }}
-                  >
-                    <AccountBalanceWalletIcon sx={{ opacity: 0, width: 0 }} />
-                  </Badge>
+                  My Services
+                </Button>
+                <Button 
+                  component={RouterLink} 
+                  to="/wallet"
+                  sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.1)', 
+                    color: 'white', 
+                    mr: 2,
+                    borderRadius: 2,
+                    px: 2,
+                    '&:hover': { bgcolor: 'rgba(255,255,255,0.2)' }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <AccountBalanceWalletIcon sx={{ mr: 1, fontSize: 20 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                      ${walletBalance.toFixed(2)}
+                    </Typography>
+                  </Box>
                 </Button>
               </>
             )}
@@ -126,13 +135,29 @@ const Header = () => {
         )}
         
         {currentUser ? (
-          <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <Button
               color="inherit"
               onClick={handleMenu}
-              startIcon={<PersonIcon />}
+              sx={{ textTransform: 'none' }}
             >
-              {currentUser.displayName || currentUser.email}
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Avatar 
+                src={currentUser?.photoURL} 
+                  sx={{ 
+                    width: 32, 
+                    height: 32, 
+                    bgcolor: 'primary.dark',
+                    border: '2px solid white',
+                    mr: 1
+                  }}
+                >
+                  {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                </Avatar>
+                <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                  {currentUser.displayName || currentUser.email}
+                </Typography>
+              </Box>
             </Button>
             <Menu
               id="menu-appbar"
