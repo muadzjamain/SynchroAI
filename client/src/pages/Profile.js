@@ -391,18 +391,6 @@ const Profile = () => {
                 ? "Get started by adding your first AI service to automate your business operations"
                 : "Try changing the filter to see other services"}
             </Typography>
-            {services.length === 0 && (
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<AddIcon />}
-                component={RouterLink}
-                to="/services"
-                sx={{ borderRadius: 8, px: 3 }}
-              >
-                Add New Service
-              </Button>
-            )}
           </Paper>
         ) : (
           <Grid container spacing={3}>
