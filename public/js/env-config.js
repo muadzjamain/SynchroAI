@@ -69,6 +69,6 @@ fetch('/api/stripe-config')
     console.error('Error loading Stripe configuration:', error);
     // Fallback configuration for development only
     window.stripeConfig = {
-      publishableKey: "pk_test_51ROs02DF5p4cGWPfcR1wD0JUmInQYMWEqzlRLY3gQW9LrS2U4pKHSs4RizVBKRdxd67D3YQ0tsAg0eLzw08OO7oT00l9sY2na5"
+      publishableKey: "pk_live_51KfyGGDXJVNuuX1gpRo56awnveAy3t3gGXY37YlbeGbU0RU9fPDwGUZ3lbNoXHLwwhSPh1zbCLAPjlHSeCVNeOul0001FlWh2I"
     };
   });
