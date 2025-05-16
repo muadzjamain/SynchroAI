@@ -1,0 +1,498 @@
+{
+  "name": "OpenAI JSON",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "f77a8cbd-8b24-4e3f-8bbe-c866d4344d95",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "messages": {
+          "values": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        220,
+        0
+      ],
+      "id": "8acfea51-49e1-40fc-9315-e90a3f4627b7",
+      "name": "OpenAI"
+    },
+    {
+      "parameters": {
+        "path": "f6df2d6e-28e3-414f-ae46-be09bf8f7f60",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        240
+      ],
+      "id": "0077bae2-61f2-4d2d-8ae1-4ff2c605ac67",
+      "name": "Webhook",
+      "webhookId": "f6df2d6e-28e3-414f-ae46-be09bf8f7f60"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "messages": {
+          "values": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        220,
+        240
+      ],
+      "id": "6dfd6044-b188-4e88-ad08-bb1dcaf0035f",
+      "name": "OpenAI1"
+    },
+    {
+      "parameters": {
+        "resource": "assistant",
+        "operation": "create",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        220,
+        500
+      ],
+      "id": "bb98d054-6cbf-4697-954b-0b1aa1bd747e",
+      "name": "OpenAI2"
+    },
+    {
+      "parameters": {
+        "resource": "assistant",
+        "operation": "deleteAssistant",
+        "assistantId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        460,
+        500
+      ],
+      "id": "7e9f86f5-7723-4045-846e-cca9f4382fbd",
+      "name": "OpenAI3"
+    },
+    {
+      "parameters": {
+        "resource": "assistant",
+        "operation": "list"
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        680,
+        500
+      ],
+      "id": "d290dbec-f330-4f94-a7ce-48ac881fb17d",
+      "name": "OpenAI4"
+    },
+    {
+      "parameters": {
+        "resource": "assistant",
+        "assistantId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        680,
+        200
+      ],
+      "id": "76343e89-98d2-40af-9386-3a48608b85f5",
+      "name": "OpenAI5"
+    },
+    {
+      "parameters": {
+        "resource": "assistant",
+        "operation": "update",
+        "assistantId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        680,
+        20
+      ],
+      "id": "661d141e-b9c6-4a60-b2f1-2bb5dd0eab6f",
+      "name": "OpenAI6"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "messages": {
+          "values": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -160,
+        480
+      ],
+      "id": "4d856dbd-4d64-44f7-9d67-42908d3fcde1",
+      "name": "OpenAI7"
+    },
+    {
+      "parameters": {
+        "operation": "classify",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        580,
+        360
+      ],
+      "id": "3f68adaf-6de1-44b8-b868-c7890835c7cd",
+      "name": "OpenAI8"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -240,
+        0
+      ],
+      "id": "cfd5f7d9-4cfe-46dc-87a9-cfdd50e108f8",
+      "name": "OpenAI9"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -220,
+        240
+      ],
+      "id": "2198ab9e-7ef1-4129-80a0-403bc1f845a4",
+      "name": "OpenAI10"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -440,
+        380
+      ],
+      "id": "11349b19-a466-41f1-a5bd-355d42f340ee",
+      "name": "OpenAI11"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "list",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -420,
+        200
+      ],
+      "id": "fb7263a5-1079-4beb-867b-39d0ea4480f3",
+      "name": "OpenAI12"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -500,
+        0
+      ],
+      "id": "fb63e57d-6415-48ad-9e40-3e39db706440",
+      "name": "OpenAI13"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1120,
+        180
+      ],
+      "id": "b8dad4ad-32d1-4db1-809a-59b81fa66b39",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        360
+      ],
+      "id": "b57db835-3dd7-48b7-ba4a-272d28422947",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1240,
+        440
+      ],
+      "id": "4cfe847c-43a3-47a2-8b1e-55e580fb3255",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        400
+      ],
+      "id": "4d617ac4-2550-45ba-8479-645fa06affb6",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        960,
+        0
+      ],
+      "id": "9c559ef4-875b-4353-b562-c5d3486dd3ec",
+      "name": "OpenAI14"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1220,
+        -40
+      ],
+      "id": "418dd040-6003-4f5b-8b14-7582ae38a6de",
+      "name": "OpenAI Chat Model1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1360,
+        20
+      ],
+      "id": "306820f6-2bb1-4184-9392-57fca4b3854e",
+      "name": "Embeddings OpenAI"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "OpenAI1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI3": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI5": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI8": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI9": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI10": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI11": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI12": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "bb16ead0-ff9b-45b5-b987-b924843bdbff",
+  "meta": {
+    "instanceId": "3d206a260d87a1664ec78b0de606cd90a0fe95cd39b0bbf3a5b38aeae7fa0d39"
+  },
+  "id": "oQI0GqCezOx0m7ht",
+  "tags": []
+}

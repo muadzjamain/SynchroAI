@@ -1,0 +1,199 @@
+{
+  "name": "Firestore JSON",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "3f9feb4b-706b-40da-bcd4-6c622105f9ab",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "id": "9a0b45a2-f621-4770-ad8d-ef6a5d6ba57c",
+      "name": "Google Cloud Firestore"
+    },
+    {
+      "parameters": {
+        "operation": "create"
+      },
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        -200
+      ],
+      "id": "72442533-06d8-492b-b696-a899ae73efb4",
+      "name": "Google Cloud Firestore1"
+    },
+    {
+      "parameters": {
+        "operation": "upsert"
+      },
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        -200
+      ],
+      "id": "c203f588-046e-44c0-9dc8-a145db25ad70",
+      "name": "Google Cloud Firestore2"
+    },
+    {
+      "parameters": {
+        "operation": "delete"
+      },
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ],
+      "id": "e2229069-67e5-4f7f-a362-33b5101e7c3e",
+      "name": "Google Cloud Firestore3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "id": "12a1f845-2acc-4464-ac42-26729d8b1dfc",
+      "name": "Google Cloud Firestore4"
+    },
+    {
+      "parameters": {
+        "operation": "getAll"
+      },
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "id": "f8a8599a-c14b-445a-974a-9b816dbdc178",
+      "name": "Google Cloud Firestore5"
+    },
+    {
+      "parameters": {
+        "operation": "query"
+      },
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        -200
+      ],
+      "id": "5033b734-9a7f-4b03-b0a0-3981cffc2249",
+      "name": "Google Cloud Firestore6"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        940,
+        -200
+      ],
+      "id": "df9a2f6f-38e1-4c45-b384-e18621a2e16d",
+      "name": "Webhook",
+      "webhookId": "ca678969-4aae-4e99-9692-9f342ee2e3e1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        1160,
+        -200
+      ],
+      "id": "e99e2fbc-7906-4735-87e8-23daf70aecb1",
+      "name": "Google Cloud Firestore7"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Cloud Firestore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Cloud Firestore": {
+      "main": [
+        []
+      ]
+    },
+    "Google Cloud Firestore1": {
+      "main": [
+        []
+      ]
+    },
+    "Google Cloud Firestore3": {
+      "main": [
+        []
+      ]
+    },
+    "Google Cloud Firestore4": {
+      "main": [
+        []
+      ]
+    },
+    "Google Cloud Firestore5": {
+      "main": [
+        []
+      ]
+    },
+    "Google Cloud Firestore6": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Google Cloud Firestore7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9bf4c4f7-8ea9-4f36-8162-5c570c25a4b2",
+  "meta": {
+    "instanceId": "3d206a260d87a1664ec78b0de606cd90a0fe95cd39b0bbf3a5b38aeae7fa0d39"
+  },
+  "id": "7Rb689pwICdU3SiZ",
+  "tags": []
+}

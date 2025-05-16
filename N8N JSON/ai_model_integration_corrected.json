@@ -1,0 +1,940 @@
+{
+  "name": "AI Model Integration (Corrected)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payment-webhook",
+        "options": {}
+      },
+      "id": "e5b077d9-5f3d-4c1e-9d9c-0a9f8d8d7a3a",
+      "name": "Payment Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "payment-webhook-trigger"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "serviceId",
+              "value": "={{ $json.body?.serviceId || $json.serviceId || \"YOUR_SERVICE_ID_HERE\" }}"
+            },
+            {
+              "name": "formType",
+              "value": "={{ $json.body?.formType || \"unknown\" }}"
+            },
+            {
+              "name": "paymentStatus",
+              "value": "={{ $json.body?.paymentStatus || \"unknown\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b8a1c3d5-7e6f-4a2b-9c3d-5e7f8a9b0c1d",
+      "name": "Set Service ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentId": "={{ $node[\"Set Service ID\"].json.serviceId }}",
+        "collection": "services",
+        "options": {}
+      },
+      "id": "c1d2e3f4-g5h6-i7j8-k9l0-m1n2o3p4q5r6",
+      "name": "Get Service Data",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "googleFirebaseCloudFirestoreOAuth2Api": {
+          "id": "google-firebase-credentials",
+          "name": "Google Firebase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "businessName",
+              "value": "={{ $json.businessName || \"Business\" }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email || \"\" }}"
+            },
+            {
+              "name": "whatsappNumber",
+              "value": "={{ $json.whatsappNumber || \"\" }}"
+            },
+            {
+              "name": "businessWebsite",
+              "value": "={{ $json.businessWebsite || \"\" }}"
+            },
+            {
+              "name": "aiRole",
+              "value": "={{ $json.aiRole || \"Customer Service Assistant\" }}"
+            },
+            {
+              "name": "accountHolderName",
+              "value": "={{ $json.accountHolderName || \"\" }}"
+            },
+            {
+              "name": "accountNumber",
+              "value": "={{ $json.accountNumber || \"\" }}"
+            },
+            {
+              "name": "bankName",
+              "value": "={{ $json.bankName || \"\" }}"
+            },
+            {
+              "name": "businessHours",
+              "value": "={{ $json.businessHours || \"\" }}"
+            },
+            {
+              "name": "faqFileInfo",
+              "value": "={{ $json.faqFileInfo || {} }}"
+            },
+            {
+              "name": "catalogFileInfo",
+              "value": "={{ $json.catalogFileInfo || {} }}"
+            },
+            {
+              "name": "faqTextContent",
+              "value": "={{ $json.faqTextContent || \"No FAQ knowledge base available\" }}"
+            },
+            {
+              "name": "catalogTextContent",
+              "value": "={{ $json.catalogTextContent || \"No product catalog available\" }}"
+            },
+            {
+              "name": "aiTone",
+              "value": "={{ $json.aiTone || \"Professional\" }}"
+            },
+            {
+              "name": "paymentInfo",
+              "value": "={{ $json.paymentInfo || {} }}"
+            },
+            {
+              "name": "paymentMethods",
+              "value": "={{ $json.paymentMethods || [] }}"
+            },
+            {
+              "name": "paymentProcessing",
+              "value": "={{ $json.paymentProcessing || \"Not specified\" }}"
+            },
+            {
+              "name": "qrCodeImageInfo",
+              "value": "={{ $json.qrCodeImageInfo || {} }}"
+            },
+            {
+              "name": "receiveEmails",
+              "value": "={{ $json.receiveEmails || \"yes\" }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.status || \"active\" }}"
+            },
+            {
+              "name": "type",
+              "value": "={{ $json.type || \"\" }}"
+            },
+            {
+              "name": "userId",
+              "value": "={{ $json.userId || \"\" }}"
+            },
+            {
+              "name": "combinedKnowledgeBase",
+              "value": "={{ $json.faqTextContent || \"No knowledge base available\" }}"
+            },
+            {
+              "name": "websiteUrl",
+              "value": "={{ $json.websiteUrl || $json.businessWebsite || \"\" }}"
+            },
+            {
+              "name": "pdfFileUrl",
+              "value": "={{ $json.pdfFileUrl || \"\" }}"
+            },
+            {
+              "name": "excelFileUrl",
+              "value": "={{ $json.excelFileUrl || \"\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c9d8e7f6-g5h4-i3j2-k1l0-m9n8o7p6q5r4",
+      "name": "Extract Service Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        680,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "44a6fee3-aaf3-4692-8aef-00aa74a66c00",
+              "leftValue": "={{ $json.websiteUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty",
+                "name": "filter.operator.isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "name": "IF (Website URL Exists)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.websiteUrl }}",
+        "options": {
+          "extraction": true
+        }
+      },
+      "id": "b1c2d3e4-f5g6-h7i8-j9k0-l1m2n3o4p5q6",
+      "name": "Scrape Website",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1120,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "websiteContent",
+              "value": "={{ $json.data }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1d2e3f4-f5g6-h7i8-j9k0-l1m2n3o4p5q6",
+      "name": "Process Website Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1340,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "87029203-cf84-4f69-8dc2-61a7a94d968a",
+              "leftValue": "={{ $json.pdfFileUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty",
+                "name": "filter.operator.isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1e2f3g4-h5i6-j7k8-l9m0-n1o2p3q4r5s6",
+      "name": "IF (PDF File Exists)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.pdfFileUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      "name": "Download PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1120,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "Extract PDF Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "pdfContent",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "Process PDF Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1560,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ca851ffd-7b25-4c37-9f17-0201e282b95b",
+              "leftValue": "={{ $json.excelFileUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty",
+                "name": "filter.operator.isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "IF (Excel File Exists)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.excelFileUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "Download Excel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1120,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "={{ $json.binary.data.filePath }}",
+        "options": {}
+      },
+      "id": "j1k2l3m4-n5o6-p7q8-r9s0-t1u2v3w4x5y6",
+      "name": "Read Excel",
+      "type": "n8n-nodes-base.spreadsheetFile",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "excelContent",
+              "value": "={{ JSON.stringify($json.data) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "k1l2m3n4-o5p6-q7r8-s9t0-u1v2w3x4y5z6",
+      "name": "Process Excel Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1560,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "MMMM DD, YYYY (h:mma)",
+        "outputFieldName": "formattedDate",
+        "options": {}
+      },
+      "id": "d0e1f2g3-h4i5-j6k7-l8m9-n0o1p2q3r4s5",
+      "name": "Format Current Date",
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        900,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "systemPrompt",
+              "value": "=You are an AI assistant for {{ $json.businessName }}. Your role is to act as a {{ $json.aiRole }} with a {{ $json.aiTone }} tone.\n\nToday's date is {{ $node[\"Format Current Date\"].json.formattedDate }}.\n\nBusiness Information:\nBusiness Name: {{ $json.businessName }}\nBusiness Hours: {{ $json.businessHours || \"Not specified\" }}\nBusiness Website: {{ $json.businessWebsite }}\n\nHere is information about the business and its offerings:\n\nFAQ KNOWLEDGE BASE:\n{{ $json.faqTextContent }}\n\nPRODUCT CATALOG:\n{{ $json.catalogTextContent }}\n\n{% if ($json.websiteContent) { %}\nWEBSITE CONTENT:\n{{ $json.websiteContent }}\n{% } %}\n\n{% if ($json.pdfContent) { %}\nPDF CONTENT:\n{{ $json.pdfContent }}\n{% } %}\n\n{% if ($json.excelContent) { %}\nEXCEL CONTENT:\n{{ $json.excelContent }}\n{% } %}\n\nPayment Information:\nAccepted Payment Methods: {{ Array.isArray($json.paymentMethods) ? $json.paymentMethods.join(', ') : $json.paymentProcessing || \"Not specified\" }}\n{% if ($json.paymentInfo && $json.paymentInfo.method) { %}Payment Method: {{ $json.paymentInfo.method }}{% } %}\n\nBanking Details:\n{% if ($json.bankName) { %}Bank Name: {{ $json.bankName }}\nAccount Holder: {{ $json.accountHolderName }}\nAccount Number: {{ $json.accountNumber }}{% } %}\n\nWhen responding to customers:\n1. Be helpful and informative\n2. Maintain the {{ $json.aiTone }} tone\n3. If asked about products or services not mentioned in the knowledge base, catalog, website, or document content, politely explain that you don't have information about those items\n4. For payment-related questions, provide the appropriate payment details\n5. Format dates as \"Month DD, YYYY (h:mmam/pm)\" - for example \"May 15, 2025 (3:38pm)\"\n\nRespond concisely and accurately based on the information provided."
+            },
+            {
+              "name": "testQuery",
+              "value": "What services do you offer?"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d1e2f3g4-h5i6-j7k8-l9m0-n1o2p3q4r5s6",
+      "name": "Prepare AI Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $node[\"Prepare AI Context\"].json.systemPrompt }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ $node[\"Prepare AI Context\"].json.testQuery }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 1024
+        }
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "Test OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2000,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "testResponse",
+              "value": "={{ $json.content }}"
+            },
+            {
+              "name": "success",
+              "value": "=true"
+            },
+            {
+              "name": "error",
+              "value": ""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "Process AI Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "documentId": "={{ $node[\"Set Service ID\"].json.serviceId }}",
+        "collection": "services",
+        "fields": {
+          "values": [
+            {
+              "name": "aiSystemPrompt",
+              "value": "={{ $node[\"Prepare AI Context\"].json.systemPrompt }}"
+            },
+            {
+              "name": "aiTestResponse",
+              "value": "={{ $node[\"Process AI Response\"].json.testResponse }}"
+            },
+            {
+              "name": "aiTestSuccess",
+              "value": "={{ $node[\"Process AI Response\"].json.success }}"
+            },
+            {
+              "name": "aiTestError",
+              "value": "={{ $node[\"Process AI Response\"].json.error }}"
+            },
+            {
+              "name": "aiTestedAt",
+              "value": "={{ $now }}"
+            },
+            {
+              "name": "lastUpdated",
+              "value": "={{ $node[\"Format Current Date\"].json.formattedDate }}"
+            },
+            {
+              "name": "websiteContent",
+              "value": "={{ $json.websiteContent || \"\" }}"
+            },
+            {
+              "name": "pdfContent",
+              "value": "={{ $json.pdfContent || \"\" }}"
+            },
+            {
+              "name": "excelContent",
+              "value": "={{ $json.excelContent || \"\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "Update Service with AI Context",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        2440,
+        300
+      ],
+      "credentials": {
+        "googleFirebaseCloudFirestoreOAuth2Api": {
+          "id": "google-firebase-credentials",
+          "name": "Google Firebase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "92b25120-b455-4424-a0e2-a2a57554ba4b",
+              "leftValue": "={{ $node[\"Extract Service Parameters\"].json.receiveEmails }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "IF (Email Notifications Enabled)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "to": "={{ $node[\"Extract Service Parameters\"].json.email }}",
+        "subject": "=SynchroAI: AI Context Updated for {{ $node[\"Extract Service Parameters\"].json.businessName }}",
+        "message": "=Hello,\n\nYour AI context for {{ $node[\"Extract Service Parameters\"].json.businessName }} has been updated.\n\nDate: {{ $node[\"Format Current Date\"].json.formattedDate }}\n\nTest Response:\n{{ $node[\"Process AI Response\"].json.testResponse }}\n\nContent Sources:\n- Website Content: {{ $json.websiteContent ? 'Extracted' : 'Not Available' }}\n- PDF Content: {{ $json.pdfContent ? 'Extracted' : 'Not Available' }}\n- Excel Content: {{ $json.excelContent ? 'Extracted' : 'Not Available' }}\n\nSign in to your SynchroAI dashboard to view and manage your AI settings.\n\nThank you,\nThe SynchroAI Team",
+        "options": {}
+      },
+      "id": "j1k2l3m4-n5o6-p7q8-r9s0-t1u2v3w4x5y6",
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2880,
+        240
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "gmail-credentials",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "k1l2m3n4-o5p6-q7r8-s9t0-u1v2w3x4y5z6",
+      "name": "No-Op Node",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2880,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Payment Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Service ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Service ID": {
+      "main": [
+        [
+          {
+            "node": "Get Service Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Service Data": {
+      "main": [
+        [
+          {
+            "node": "Extract Service Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Service Parameters": {
+      "main": [
+        [
+          {
+            "node": "Format Current Date",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF (Website URL Exists)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF (PDF File Exists)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF (Excel File Exists)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Website URL Exists)": {
+      "main": [
+        [
+          {
+            "node": "Scrape Website",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Scrape Website": {
+      "main": [
+        [
+          {
+            "node": "Process Website Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Website Content": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (PDF File Exists)": {
+      "main": [
+        [
+          {
+            "node": "Download PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Download PDF": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF Text": {
+      "main": [
+        [
+          {
+            "node": "Process PDF Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process PDF Content": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Excel File Exists)": {
+      "main": [
+        [
+          {
+            "node": "Download Excel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Download Excel": {
+      "main": [
+        [
+          {
+            "node": "Read Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Excel": {
+      "main": [
+        [
+          {
+            "node": "Process Excel Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Excel Content": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Current Date": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Context": {
+      "main": [
+        [
+          {
+            "node": "Test OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Process AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process AI Response": {
+      "main": [
+        [
+          {
+            "node": "Update Service with AI Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Service with AI Context": {
+      "main": [
+        [
+          {
+            "node": "IF (Email Notifications Enabled)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Email Notifications Enabled)": {
+      "main": [
+        [
+          {
+            "node": "Send Email Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No-Op Node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

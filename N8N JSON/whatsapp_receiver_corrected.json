@@ -1,0 +1,1402 @@
+{
+  "name": "WhatsApp Message Receiver (Corrected)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "whatsapp-trigger"
+    },
+    {
+      "parameters": {
+        "operation": "formatDate",
+        "date": "={{ $now }}",
+        "format": "MMMM DD, YYYY (h:mma)",
+        "outputFieldName": "formattedDate",
+        "options": {}
+      },
+      "id": "b1c2d3e4-f5g6-h7i8-j9k0-l1m2n3o4p5q6",
+      "name": "Format Timestamp",
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        460,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "messageId",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "messageText",
+              "value": "={{ $json.text?.body || \"\" }}"
+            },
+            {
+              "name": "senderPhone",
+              "value": "={{ $json.from }}"
+            },
+            {
+              "name": "recipientPhone",
+              "value": "={{ $json.to }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "contactName",
+              "value": "={{ $json.contactName || \"Unknown\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1d2e3f4-g5h6-i7j8-j9k0-l1m2n3o4p5q6",
+      "name": "Extract Message Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "query",
+        "collection": "services",
+        "query": {
+          "where": [
+            {
+              "field": "whatsappNumber",
+              "operation": "equal",
+              "value": "={{ $json.recipientPhone }}"
+            }
+          ]
+        },
+        "limit": 1,
+        "options": {}
+      },
+      "id": "d1e2f3g4-h5i6-j7k8-l9m0-n1o2p3q4r5s6",
+      "name": "Get Service by WhatsApp Number",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "googleFirebaseCloudFirestoreOAuth2Api": {
+          "id": "google-firebase-credentials",
+          "name": "Google Firebase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "44a6fee3-aaf3-4692-8aef-00aa74a66c00",
+              "leftValue": "={{ $json.data.length }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "string",
+                "operation": "notEqual",
+                "name": "filter.operator.notEqual"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e1f2g3h4-i5j6-k7l8-m9n0-o1p2q3r4s5t6",
+      "name": "IF (Service Found)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "serviceId",
+              "value": "={{ $json.data[0].id }}"
+            },
+            {
+              "name": "businessName",
+              "value": "={{ $json.data[0].json.businessName }}"
+            },
+            {
+              "name": "serviceType",
+              "value": "={{ $json.data[0].json.type || \"faq\" }}"
+            },
+            {
+              "name": "aiRole",
+              "value": "={{ $json.data[0].json.aiRole || \"assistant\" }}"
+            },
+            {
+              "name": "aiTone",
+              "value": "={{ $json.data[0].json.aiTone || \"Professional\" }}"
+            },
+            {
+              "name": "businessHours",
+              "value": "={{ $json.data[0].json.businessHours || \"\" }}"
+            },
+            {
+              "name": "businessWebsite",
+              "value": "={{ $json.data[0].json.businessWebsite || \"\" }}"
+            },
+            {
+              "name": "paymentMethods",
+              "value": "={{ $json.data[0].json.paymentMethods || [] }}"
+            },
+            {
+              "name": "paymentProcessing",
+              "value": "={{ $json.data[0].json.paymentProcessing || \"\" }}"
+            },
+            {
+              "name": "accountHolderName",
+              "value": "={{ $json.data[0].json.accountHolderName || \"\" }}"
+            },
+            {
+              "name": "accountNumber",
+              "value": "={{ $json.data[0].json.accountNumber || \"\" }}"
+            },
+            {
+              "name": "bankName",
+              "value": "={{ $json.data[0].json.bankName || \"\" }}"
+            },
+            {
+              "name": "orderStatus",
+              "value": "={{ $json.data[0].json.orderStatus || \"\" }}"
+            },
+            {
+              "name": "aiSystemPrompt",
+              "value": "={{ $json.data[0].json.aiSystemPrompt }}"
+            },
+            {
+              "name": "websiteContent",
+              "value": "={{ $json.data[0].json.websiteContent || \"\" }}"
+            },
+            {
+              "name": "pdfContent",
+              "value": "={{ $json.data[0].json.pdfContent || \"\" }}"
+            },
+            {
+              "name": "excelContent",
+              "value": "={{ $json.data[0].json.excelContent || \"\" }}"
+            },
+            {
+              "name": "faqTextContent",
+              "value": "={{ $json.data[0].json.faqTextContent || \"\" }}"
+            },
+            {
+              "name": "catalogTextContent",
+              "value": "={{ $json.data[0].json.catalogTextContent || \"\" }}"
+            },
+            {
+              "name": "catalogFileInfo",
+              "value": "={{ $json.data[0].json.catalogFileInfo || {} }}"
+            },
+            {
+              "name": "faqFileInfo",
+              "value": "={{ $json.data[0].json.faqFileInfo || {} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1g2h3i4-j5k6-l7m8-n9o0-p1q2r3s4t5u6",
+      "name": "Set Service Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "contextData",
+              "value": "={{ { businessName: $json.businessName, serviceType: $json.serviceType } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g1h2i3j4-k5l6-m7n8-o9p0-q1r2s3t4u5v6",
+      "name": "Prepare Context Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1340,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "collection": "conversations",
+        "fields": {
+          "values": [
+            {
+              "name": "serviceId",
+              "value": "={{ $json.serviceId }}"
+            },
+            {
+              "name": "senderPhone",
+              "value": "={{ $json.senderPhone }}"
+            },
+            {
+              "name": "recipientPhone",
+              "value": "={{ $json.recipientPhone }}"
+            },
+            {
+              "name": "messageText",
+              "value": "={{ $json.messageText }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "formattedDate",
+              "value": "={{ $node[\"Format Timestamp\"].json.formattedDate }}"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "contactName",
+              "value": "={{ $json.contactName }}"
+            },
+            {
+              "name": "serviceType",
+              "value": "={{ $json.serviceType }}"
+            },
+            {
+              "name": "createdAt",
+              "value": "={{ $now }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "h1i2j3k4-l5m6-n7o8-p9q0-r1s2t3u4v5w6",
+      "name": "Log Conversation",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        240
+      ],
+      "credentials": {
+        "googleFirebaseCloudFirestoreOAuth2Api": {
+          "id": "google-firebase-credentials",
+          "name": "Google Firebase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "87029203-cf84-4f69-8dc2-61a7a94d968a",
+              "leftValue": "={{ $json.serviceType }}",
+              "rightValue": "faq",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "i1j2k3l4-m5n6-o7p8-q9r0-s1t2u3v4w5x6",
+      "name": "IF (FAQ Service)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "aiSystemPrompt",
+              "value": "You are an AI assistant for {{ $json.businessName || 'a business' }}. Your tone is {{ $json.aiTone || 'Professional' }}. You are helping customers with their inquiries about products, services, and orders.\n\nBUSINESS INFORMATION:\n- Business Name: {{ $json.businessName || 'Not specified' }}\n- Business Type: {{ $json.aiRole || 'Not specified' }}\n- Business Hours: {{ $json.businessHours || 'Not specified' }}\n- Website: {{ $json.businessWebsite || 'Not specified' }}\n\nPAYMENT INFORMATION:\n- Payment Methods: {{ Array.isArray($json.paymentMethods) ? $json.paymentMethods.join(', ') : ($json.paymentMethods || 'Not specified') }}\n- Payment Processing: {{ $json.paymentProcessing || 'Not specified' }}\n\nKNOWLEDGE BASE:\n{{ $json.faqTextContent || 'No FAQ knowledge base available' }}\n\nPRODUCT CATALOG:\n{{ $json.catalogTextContent || 'No product catalog available' }}\n\nGUIDELINES:\n1. Be helpful, concise, and friendly.\n2. If asked about products or services, provide accurate information based on the business catalog.\n3. If asked about payment methods, explain the available options.\n4. If asked about business hours or contact information, provide the correct details.\n5. If asked about order status, politely explain how they can check their order status.\n6. If you don't know the answer, politely say so and offer to connect them with a human representative if needed.\n7. Never make up information that is not provided in your knowledge base."
+            },
+            {
+              "name": "aiPrompt",
+              "value": "={{ $json.aiSystemPrompt + \"\\n\\nUser query: \" + $json.messageText }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "j1k2l3m4-n5o6-p7q8-r9s0-t1u2v3w4x5y6",
+      "name": "Prepare AI Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $json.aiSystemPrompt }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.messageText }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 1024
+        }
+      },
+      "id": "k1l2m3n4-o5p6-q7r8-s9t0-u1v2w3x4y5z6",
+      "name": "Get OpenAI Response",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2220,
+        180
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "target": "={{ $json.senderPhone }}",
+        "text": "={{ $json.content }}",
+        "options": {}
+      },
+      "id": "l1m2n3o4-p5q6-r7s8-t9u0-v1w2x3y4z5a6",
+      "name": "Send WhatsApp Response",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        180
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "92b25120-b455-4424-a0e2-a2a57554ba4b",
+              "leftValue": "={{ $json.serviceType }}",
+              "rightValue": "order",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "m1n2o3p4-q5r6-s7t8-u9v0-w1x2y3z4a5b6",
+      "name": "IF (Order Service)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2000,
+        360
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "n1o2p3q4-r5s6-t7u8-v9w0-x1y2z3a4b5c6",
+      "name": "No Service Found",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Determine if the message contains an order request\nconst orderKeywords = ['order', 'buy', 'purchase', 'get', 'want', 'need', 'how much', 'price', 'cost'];\nconst message = $input.item.json.messageText.toLowerCase();\n\n// Check if this is an order request\nconst isOrderRequest = orderKeywords.some(keyword => message.includes(keyword));\n\n// Check if this is a receipt\nconst isReceipt = $input.item.json.image || \n                 message.includes('receipt') || \n                 message.includes('payment') || \n                 message.includes('paid') || \n                 message.includes('transfer');\n\n// Payment type detection\nconst paymentKeywords = {\n  qr: ['qr', 'qr code', 'scan', 'qrcode'],\n  bank: ['bank', 'transfer', 'account', 'banking'],\n  cod: ['cod', 'cash', 'delivery', 'cash on delivery'],\n  general: ['pay', 'payment', 'bayar', 'paid']\n};\n\n// Determine payment type\nlet paymentType = 'general';\nif (paymentKeywords.qr.some(keyword => message.includes(keyword))) {\n  paymentType = 'qr';\n} else if (paymentKeywords.bank.some(keyword => message.includes(keyword))) {\n  paymentType = 'bank';\n} else if (paymentKeywords.cod.some(keyword => message.includes(keyword))) {\n  paymentType = 'cod';\n}\n\n// Determine the stage of the order process\nlet orderStage = 'initial';\nif (isReceipt) {\n  orderStage = 'receipt';\n} else if (isOrderRequest) {\n  orderStage = 'ordering';\n} else if (paymentType !== 'general') {\n  orderStage = 'payment';\n}\n\nreturn {\n  orderStage: orderStage,\n  isOrderRequest: isOrderRequest,\n  isReceipt: isReceipt,\n  paymentType: paymentType\n};"
+      },
+      "id": "a2b3c4d5-e6f7-g8h9-i0j1-k2l3m4n5o6p7",
+      "name": "Analyze Order Message",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ca851ffd-7b25-4c37-9f17-0201e282b95b",
+              "leftValue": "={{ $json.paymentType }}",
+              "rightValue": "qr",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2c3d4e5-f6g7-h8i9-j0k1-l2m3n4o5p6q7",
+      "name": "IF (QR Payment)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "sendMedia",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "target": "={{ $json.senderPhone }}",
+        "mediaUrl": "={{ $json.qrCodeImageInfo.url }}",
+        "mediaType": "image",
+        "additionalFields": {
+          "caption": "Here is your QR code for payment. Please scan to complete your order."
+        }
+      },
+      "id": "c2d3e4f5-g6h7-i8j9-k0l1-m2n3o4p5q6r7",
+      "name": "Send QR Code",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        300
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "92b25120-b455-4424-a0e2-a2a57554ba4b",
+              "leftValue": "={{ $json.paymentType }}",
+              "rightValue": "bank",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d2e3f4g5-h6i7-j8k9-l0m1-n2o3p4q5r6s7",
+      "name": "IF (Bank Payment)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2440,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "bankDetails",
+              "value": "=Bank Name: {{ $json.bankName || \"Not specified\" }}\nAccount Holder: {{ $json.accountHolderName || \"Not specified\" }}\nAccount Number: {{ $json.accountNumber || \"Not specified\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e2f3g4h5-i6j7-k8l9-m0n1-o2p3q4r5s6t7",
+      "name": "Format Bank Details",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2660,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "target": "={{ $json.senderPhone }}",
+        "text": "={{ $json.bankDetails }}\n\nPlease send us the payment receipt after completing the transfer.",
+        "options": {}
+      },
+      "id": "f2g3h4i5-j6k7-l8m9-n0o1-p2q3r4s5t6u7",
+      "name": "Send Bank Details",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2880,
+        480
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "77029203-cf84-4f69-8dc2-61a7a94d968a",
+              "leftValue": "={{ $json.isReceipt }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f2g3h4i5-j6k7-l8m9-n0o1-p2q3r4s5t6u7",
+      "name": "IF (Receipt)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2440,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "87029203-cf84-4f69-8dc2-61a7a94d968a",
+              "leftValue": "={{ $json.paymentType }}",
+              "rightValue": "cod",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "g2h3i4j5-k6l7-m8n9-o0p1-q2r3s4t5u6v7",
+      "name": "IF (COD Payment)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2440,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "target": "={{ $json.senderPhone }}",
+        "text": "Your order has been confirmed for Cash on Delivery. Please prepare the exact amount when our delivery person arrives. Thank you for your order!",
+        "options": {}
+      },
+      "id": "h2i3j4k5-l6m7-n8o9-p0q1-r2s3t4u5v6w7",
+      "name": "Send COD Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        600
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o"
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $json.aiSystemPrompt }}"
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.messageText }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2,
+          "maxTokens": 1024
+        }
+      },
+      "id": "i2j3k4l5-m6n7-o8p9-q0r1-s2t3u4v5w6x7",
+      "name": "Get Order AI Response",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2660,
+        720
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// This function would typically integrate with an image analysis service\n// or a receipt verification API. For this example, we'll simulate the verification.\n\n// Check if there's an image in the message\nconst hasImage = $input.item.json.image || false;\n\n// Check for keywords that suggest a legitimate receipt\nconst message = $input.item.json.messageText.toLowerCase();\nconst receiptKeywords = ['transaction', 'reference', 'id:', 'number:', 'amount:', 'paid', 'confirmed'];\nconst keywordsFound = receiptKeywords.filter(keyword => message.includes(keyword));\n\n// Simulate verification - in a real scenario, this would be more sophisticated\n// For demo purposes: if message has an image OR at least 2 receipt keywords, consider it valid\nconst isValid = hasImage || keywordsFound.length >= 2;\n\nreturn {\n  receiptVerified: isValid,\n  verificationDetails: {\n    hasImage: hasImage,\n    keywordsFound: keywordsFound,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "k2l3m4n5-o6p7-q8r9-s0t1-u2v3w4x5y6z7",
+      "name": "Verify Receipt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "44a6fee3-aaf3-4692-8aef-00aa74a66c00",
+              "leftValue": "={{ $json.receiptVerified }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "l2m3n4o5-p6q7-r8s9-t0u1-v2w3x4y5z6a7",
+      "name": "IF (Valid Receipt)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2660,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "target": "={{ $json.senderPhone }}",
+        "text": "={{ $json.content }}",
+        "options": {}
+      },
+      "id": "j2k3l4m5-n6o7-p8q9-r0s1-t2u3v4w5x6y7",
+      "name": "Send Order AI Response",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2880,
+        720
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "collection": "receipts",
+        "fields": {
+          "values": [
+            {
+              "name": "serviceId",
+              "value": "={{ $json.serviceId }}"
+            },
+            {
+              "name": "customerPhone",
+              "value": "={{ $json.senderPhone }}"
+            },
+            {
+              "name": "messageId",
+              "value": "={{ $json.messageId }}"
+            },
+            {
+              "name": "verificationDetails",
+              "value": "={{ $json.verificationDetails }}"
+            },
+            {
+              "name": "verified",
+              "value": "=true"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $now }}"
+            },
+            {
+              "name": "messageText",
+              "value": "={{ $json.messageText }}"
+            }
+          ]
+        }
+      },
+      "id": "m2n3o4p5-q6r7-s8t9-u0v1-w2x3y4z5a6b7",
+      "name": "Log Valid Receipt",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        2880,
+        800
+      ],
+      "credentials": {
+        "googleFirebaseCloudFirestoreOAuth2Api": {
+          "id": "google-firebase-credentials",
+          "name": "Google Firebase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "target": "={{ $json.senderPhone }}",
+        "text": "Thank you! Your receipt has been verified and your order is confirmed. You will receive updates about your order status soon.",
+        "options": {}
+      },
+      "id": "n2o3p4q5-r6s7-t8u9-v0w1-x2y3z4a5b6c7",
+      "name": "Send Receipt Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        800
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "target": "={{ $json.senderPhone }}",
+        "text": "We couldn't verify your receipt. Please ensure you're sending a clear image of the payment receipt that shows the transaction details, amount, and reference number.",
+        "options": {}
+      },
+      "id": "o2p3q4r5-s6t7-u8v9-w0x1-y2z3a4b5c6d7",
+      "name": "Request Valid Receipt",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2880,
+        900
+      ],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-credentials",
+          "name": "WhatsApp API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "documentId": "={{ $json.serviceId }}",
+        "collection": "services",
+        "fields": {
+          "values": [
+            {
+              "name": "lastInteraction",
+              "value": "={{ $now }}"
+            },
+            {
+              "name": "lastMessageText",
+              "value": "={{ $json.messageText }}"
+            },
+            {
+              "name": "lastResponseText",
+              "value": "={{ $json.content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "o1p2q3r4-s5t6-u7v8-v9w0-x1y2z3a4b5c6",
+      "name": "Update Service Last Interaction",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        2660,
+        180
+      ],
+      "credentials": {
+        "googleFirebaseCloudFirestoreOAuth2Api": {
+          "id": "google-firebase-credentials",
+          "name": "Google Firebase Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "documentId": "={{ $json.serviceId }}",
+        "collection": "services",
+        "fields": {
+          "values": [
+            {
+              "name": "orderStatus",
+              "value": "paid"
+            },
+            {
+              "name": "paymentVerified",
+              "value": "=true"
+            },
+            {
+              "name": "lastPaymentDate",
+              "value": "={{ $now }}"
+            },
+            {
+              "name": "lastPaymentAmount",
+              "value": "={{ $json.service.orderAmount || '0' }}"
+            },
+            {
+              "name": "paymentMethod",
+              "value": "={{ $json.paymentType }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "p1q2r3s4-t5u6-v7w8-x9y0-z1a2b3c4d5e6",
+      "name": "Update Order Status",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1.1,
+      "position": [
+        3320,
+        800
+      ],
+      "credentials": {
+        "googleFirebaseCloudFirestoreOAuth2Api": {
+          "id": "google-firebase-credentials",
+          "name": "Google Firebase Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Timestamp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Message Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Receipt)": {
+      "main": [
+        [
+          {
+            "node": "Verify Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Verify Receipt": {
+      "main": [
+        [
+          {
+            "node": "IF (Valid Receipt)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Valid Receipt)": {
+      "main": [
+        [
+          {
+            "node": "Log Valid Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Request Valid Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Valid Receipt": {
+      "main": [
+        [
+          {
+            "node": "Send Receipt Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Receipt Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Update Order Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message Data": {
+      "main": [
+        [
+          {
+            "node": "Get Service by WhatsApp Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Service by WhatsApp Number": {
+      "main": [
+        [
+          {
+            "node": "IF (Service Found)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Service Found)": {
+      "main": [
+        [
+          {
+            "node": "Set Service Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Service Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Service Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Context Data": {
+      "main": [
+        [
+          {
+            "node": "Log Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Conversation": {
+      "main": [
+        [
+          {
+            "node": "IF (FAQ Service)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (FAQ Service)": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF (Order Service)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Request": {
+      "main": [
+        [
+          {
+            "node": "Get OpenAI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Order Service)": {
+      "main": [
+        [
+          {
+            "node": "Analyze Order Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get OpenAI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get OpenAI Response": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Response": {
+      "main": [
+        [
+          {
+            "node": "Update Service Last Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Order Message": {
+      "main": [
+        [
+          {
+            "node": "IF (Receipt)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF (QR Payment)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF (Bank Payment)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF (COD Payment)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (QR Payment)": {
+      "main": [
+        [
+          {
+            "node": "Send QR Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "IF (Bank Payment)": {
+      "main": [
+        [
+          {
+            "node": "Format Bank Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Format Bank Details": {
+      "main": [
+        [
+          {
+            "node": "Send Bank Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (COD Payment)": {
+      "main": [
+        [
+          {
+            "node": "Send COD Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Order AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send QR Code": {
+      "main": [
+        [
+          {
+            "node": "Update Service Last Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Bank Details": {
+      "main": [
+        [
+          {
+            "node": "Update Service Last Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send COD Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Update Service Last Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Order AI Response": {
+      "main": [
+        [
+          {
+            "node": "Send Order AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Order AI Response": {
+      "main": [
+        [
+          {
+            "node": "Update Service Last Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

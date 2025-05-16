@@ -1,0 +1,314 @@
+{
+  "name": "Whatsapp JSON",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "account_review_update"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7d2d71f2-d773-4aea-bd26-31b1305c2c46",
+      "name": "WhatsApp Trigger",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "account_update"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        160
+      ],
+      "id": "e8e67b87-6db6-4ba7-af5f-41b73832801b",
+      "name": "WhatsApp Trigger1",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "business_capability_update"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -160
+      ],
+      "id": "aa422aeb-5070-4143-a244-3aa6dbe55be0",
+      "name": "WhatsApp Trigger2",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message_template_quality_update"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -320
+      ],
+      "id": "cb1e05be-7bf3-4062-b749-03694150d69d",
+      "name": "WhatsApp Trigger3",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message_template_status_update"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        360,
+        -320
+      ],
+      "id": "713b877c-b8b8-47b1-8bf2-e9af4ce3c0fd",
+      "name": "WhatsApp Trigger4",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        360,
+        -160
+      ],
+      "id": "8a5dc85a-943f-4d85-9797-05b1f432e100",
+      "name": "WhatsApp Trigger5",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "phone_number_name_update"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        360,
+        0
+      ],
+      "id": "32233810-2e6e-4d20-a49d-aff377e55966",
+      "name": "WhatsApp Trigger6",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "phone_number_quality_update"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        360,
+        160
+      ],
+      "id": "4b059593-3080-4328-8efc-e86fad630191",
+      "name": "WhatsApp Trigger7",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "security"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        700,
+        -320
+      ],
+      "id": "e20baacc-34e4-4db1-9140-070a2fed6655",
+      "name": "WhatsApp Trigger8",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "template_category_update"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        700,
+        -160
+      ],
+      "id": "369bb09a-45fa-48fb-8bba-87c76b893c4c",
+      "name": "WhatsApp Trigger9",
+      "webhookId": "cf3e6d6c-1466-4fca-8a65-5661a15ce944"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        700,
+        0
+      ],
+      "id": "f15b1579-9475-4ce2-8645-abbba9742749",
+      "name": "WhatsApp Business Cloud",
+      "webhookId": "03c28963-ce15-4df9-a685-8d9902d27d88"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        720,
+        180
+      ],
+      "id": "b3b16084-630f-4e89-b721-93b51a5dadb2",
+      "name": "WhatsApp Business Cloud1",
+      "webhookId": "d8860900-bf8b-48dc-bc13-967679d2f79c"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        960,
+        -320
+      ],
+      "id": "7d63584d-eb44-43e4-9e01-5f68bda5b261",
+      "name": "WhatsApp Business Cloud2",
+      "webhookId": "d8860900-bf8b-48dc-bc13-967679d2f79c"
+    },
+    {
+      "parameters": {
+        "operation": "__CUSTOM_API_CALL__"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        960,
+        -120
+      ],
+      "id": "ce44d7e8-98ff-4cae-8d37-cc7d1337a8dc",
+      "name": "WhatsApp Business Cloud3",
+      "webhookId": "d8860900-bf8b-48dc-bc13-967679d2f79c"
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        960,
+        60
+      ],
+      "id": "0e281dae-f195-4be6-b40a-ed8fe95283b8",
+      "name": "WhatsApp Business Cloud4",
+      "webhookId": "6bf426bc-c7c7-4ae3-a03e-0452e0d56786"
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        960,
+        260
+      ],
+      "id": "48dde277-2b98-44ce-8ad5-f107d584def1",
+      "name": "WhatsApp Business Cloud5",
+      "webhookId": "e5ba52f9-9553-4304-8753-fae7374f4fd0"
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaDelete"
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        260
+      ],
+      "id": "07e8787f-f94e-44c6-b3e2-c06de89e9d0a",
+      "name": "WhatsApp Business Cloud6",
+      "webhookId": "8fd6eada-d631-4d30-9407-0cf40aec8e96"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger9": {
+      "main": [
+        []
+      ]
+    },
+    "WhatsApp Business Cloud": {
+      "main": [
+        []
+      ]
+    },
+    "WhatsApp Business Cloud3": {
+      "main": [
+        []
+      ]
+    },
+    "WhatsApp Business Cloud4": {
+      "main": [
+        []
+      ]
+    },
+    "WhatsApp Business Cloud5": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "56fab839-9e07-41f7-a032-a1600c92859f",
+  "meta": {
+    "instanceId": "3d206a260d87a1664ec78b0de606cd90a0fe95cd39b0bbf3a5b38aeae7fa0d39"
+  },
+  "id": "EdT0iY8dZwz5RmAi",
+  "tags": []
+}
