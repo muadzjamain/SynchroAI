@@ -15,11 +15,28 @@ import {
   DialogTitle,
   CircularProgress,
   Alert,
-  Divider
+  Divider,
+  Container,
+  Paper,
+  Tabs,
+  Tab,
+  IconButton,
+  Stack,
+  Tooltip,
+  Avatar,
+  LinearProgress,
+  Skeleton
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import PauseCircleIcon from '@mui/icons-material/PauseCircle';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { getFirestore, collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,6 +48,18 @@ const Profile = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [tabValue, setTabValue] = useState(0);
+  const [filterStatus, setFilterStatus] = useState('all');
+
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+  };
+
+  // Filter services based on status
+  const filteredServices = services.filter(service => {
+    if (filterStatus === 'all') return true;
+    return service.status === filterStatus;
+  });
 
   // Fetch user services
   useEffect(() => {
@@ -195,159 +224,285 @@ const Profile = () => {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" component="h1" fontWeight="bold">
-          My Services
-        </Typography>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      {/* Header with blue gradient like example 3 */}
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 4, 
+          mb: 4, 
+          borderRadius: 2,
+          background: 'linear-gradient(90deg, #1976d2 0%, #21CBF3 100%)',
+          color: 'white',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        <Box>
+          <Typography variant="h4" component="h1" fontWeight="bold" color="white" sx={{ mb: 1 }}>
+            My Services
+          </Typography>
+          <Typography variant="subtitle1" color="white" sx={{ opacity: 0.9 }}>
+            Welcome, {currentUser?.displayName || 'User'}
+          </Typography>
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<SmartToyIcon />}
+            sx={{ mt: 2, borderRadius: 8, bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+          >
+            {services.length} AI {services.length === 1 ? 'Agent' : 'Agents'}
+          </Button>
+
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<AccountBalanceWalletIcon  />}
+            component={RouterLink}
+            to="/wallet"
+            sx={{ mt: 2, borderRadius: 8, bgcolor: 'rgba(255,255,255,0.2)', color: 'white', ml: 2 }}
+          >
+            Topup Wallet
+          </Button>
+        </Box>
         <Button
           variant="contained"
-          color="primary"
+          color="secondary"
           startIcon={<AddIcon />}
           component={RouterLink}
           to="/"
-          sx={{ borderRadius: 2 }}
+          sx={{ borderRadius: 30, px: 3, bgcolor: 'white', color: 'primary.main' }}
         >
           Add New Service
         </Button>
-      </Box>
+      </Paper>
       
+      {/* Error Alert */}
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
           {error}
         </Alert>
       )}
       
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
-        </Box>
-      ) : services.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: 6 }}>
-          <CardContent>
+      {/* Filter Tabs - Clean Design */}
+      {!loading && services.length > 0 && (
+        <Paper elevation={0} sx={{ mb: 3, borderRadius: 2, overflow: 'hidden' }}>
+          <Tabs 
+            value={tabValue} 
+            onChange={handleTabChange}
+            variant="fullWidth"
+            textColor="primary"
+            indicatorColor="primary"
+            sx={{ bgcolor: '#f9f9f9' }}
+          >
+            <Tab 
+              label="All Services" 
+              onClick={() => setFilterStatus('all')}
+              sx={{ py: 1.5 }}
+            />
+            <Tab 
+              label="Active" 
+              onClick={() => setFilterStatus('active')}
+              sx={{ py: 1.5 }}
+            />
+            <Tab 
+              label="Paused" 
+              onClick={() => setFilterStatus('paused')}
+              sx={{ py: 1.5 }}
+            />
+          </Tabs>
+        </Paper>
+      )}
+      
+      {/* Services Section */}
+      <Box>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : filteredServices.length === 0 ? (
+          <Paper sx={{ p: 5, textAlign: 'center', borderRadius: 2 }}>
+            <SmartToyIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
-              You don't have any services yet
+              {services.length === 0 ? "You don't have any services yet" : "No services match the current filter"}
             </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              Get started by adding your first AI service
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
+              {services.length === 0 
+                ? "Get started by adding your first AI service to automate your business operations"
+                : "Try changing the filter to see other services"}
             </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              component={RouterLink}
-              to="/"
-              sx={{ mt: 2 }}
-            >
-              Browse Services
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Grid container spacing={3}>
-          {services.map((service) => (
-            <Grid item xs={12} md={6} key={service.id}>
-              <Card sx={{ height: '100%' }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Box sx={{ 
-                        mr: 2, 
-                        bgcolor: 'primary.light', 
-                        color: 'white', 
-                        borderRadius: '50%',
-                        width: 40,
-                        height: 40,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        {getServiceIcon(service.type)}
+            {services.length === 0 && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<AddIcon />}
+                component={RouterLink}
+                to="/services"
+                sx={{ borderRadius: 8, px: 3 }}
+              >
+                Add New Service
+              </Button>
+            )}
+          </Paper>
+        ) : (
+          <Grid container spacing={3}>
+            {filteredServices.map((service) => (
+              <Grid item xs={12} sm={6} key={service.id}>
+                <Paper 
+                  elevation={1} 
+                  sx={{ 
+                    borderRadius: 4,
+                    overflow: 'hidden',
+                    transition: 'box-shadow 0.3s ease',
+                    border: '1px solid #f0f0f0',
+                    '&:hover': {
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+                    }
+                  }}
+                >
+                  <Box sx={{ p: 3 }}>
+                    {/* Service Header */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box 
+                          sx={{ 
+                            mr: 2, 
+                            color: 'white',
+                            bgcolor: service.type.includes('whatsapp') ? '#25D366' : 'primary.main',
+                            width: 48,
+                            height: 48,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {getServiceIcon(service.type)}
+                        </Box>
+                        <Box>
+                          <Typography variant="h6" fontWeight="medium" noWrap>
+                            {service.businessName || 'Your Business'}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {getServiceName(service.type)}
+                          </Typography>
+                        </Box>
                       </Box>
-                      <Box>
-                        <Typography variant="h6" component="div">
-                          {getServiceName(service.type)}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {service.businessName || 'Your Business'}
-                        </Typography>
-                      </Box>
+                      <Chip 
+                        label={service.status === 'active' ? 'Active' : 'Paused'} 
+                        color={service.status === 'active' ? 'success' : 'default'}
+                        size="small"
+                        sx={{ 
+                          fontWeight: 'medium', 
+                          borderRadius: 16,
+                          px: 1
+                        }}
+                      />
                     </Box>
-                    <Chip 
-                      label={service.status === 'active' ? 'Active' : 'Paused'} 
-                      color={service.status === 'active' ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </Box>
-                  
-                  <Divider sx={{ my: 2 }} />
-                  
-                  <Grid container spacing={2}>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Created
-                      </Typography>
-                      <Typography variant="body1">
-                        {formatDate(service.createdAt)}
-                      </Typography>
+                    
+                    <Divider sx={{ my: 2 }} />
+                    
+                    {/* Service Info */}
+                    <Grid container spacing={2} sx={{ mb: 3 }}>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          Created
+                        </Typography>
+                        <Typography variant="body1" color="text.primary" fontWeight="medium">
+                          {formatDate(service.createdAt)}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="body2" color="text.secondary">
+                          Price
+                        </Typography>
+                        <Typography variant="body1" color="primary.main" fontWeight="bold">
+                          ${getServicePrice(service.type).replace('$', '')}
+                        </Typography>
+                      </Grid>
                     </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" color="text.secondary">
-                        Price
-                      </Typography>
-                      <Typography variant="body1" color="primary.main" fontWeight="medium">
-                        {getServicePrice(service.type)}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                  
-                  <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
-                    <Button
-                      variant="outlined"
-                      color={service.status === 'active' ? 'warning' : 'success'}
-                      onClick={() => toggleServiceStatus(service.id, service.status)}
-                      disabled={actionLoading}
-                    >
-                      {service.status === 'active' ? 'Pause' : 'Activate'}
-                    </Button>
-                    <Box>
-                      {/* Only show View Orders button for WhatsApp Order AI service */}
-                      {service.type === 'whatsapp-order' && (
+                    
+                    {/* Action Buttons - Styled like the first image */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
+                      <Button
+                        variant="outlined"
+                        color={service.status === 'active' ? 'warning' : 'success'}
+                        onClick={() => toggleServiceStatus(service.id, service.status)}
+                        disabled={actionLoading}
+                        startIcon={service.status === 'active' ? <PauseCircleIcon /> : <PlayCircleIcon />}
+                        sx={{ 
+                          borderRadius: 30,
+                          px: 3,
+                          border: service.status === 'active' ? '1px solid #ed6c02' : '1px solid #2e7d32',
+                          color: service.status === 'active' ? '#ed6c02' : '#2e7d32'
+                        }}
+                      >
+                        {service.status === 'active' ? 'Pause' : 'Activate'}
+                      </Button>
+                      
+                      <Box>
+                        {/* Only show View Orders button for WhatsApp Order AI service */}
+                        {service.type === 'whatsapp-order' && (
+                          <Button
+                            variant="outlined"
+                            color="info"
+                            component={RouterLink}
+                            to={`/view-orders/${service.id}`}
+                            startIcon={<ShoppingBagIcon />}
+                            sx={{ 
+                              mr: 1, 
+                              borderRadius: 30,
+                              px: 3,
+                              borderColor: '#0288d1',
+                              color: '#0288d1'
+                            }}
+                          >
+                            Orders
+                          </Button>
+                        )}
+                        
                         <Button
                           variant="outlined"
-                          color="info"
+                          color="primary"
                           component={RouterLink}
-                          to={`/view-orders/${service.id}`}
-                          sx={{ mr: 1 }}
+                          to={`/form-${service.type}?id=${service.id}`}
+                          startIcon={<EditIcon />}
+                          sx={{ 
+                            mr: 1, 
+                            borderRadius: 30,
+                            px: 3,
+                            borderColor: '#1976d2',
+                            color: '#1976d2'
+                          }}
                         >
-                          View Orders
+                          Edit
                         </Button>
-                      )}
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        component={RouterLink}
-                        to={`/form-${service.type}?id=${service.id}`}
-                        sx={{ mr: 1 }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={() => openDeleteDialog(service)}
-                        disabled={actionLoading}
-                      >
-                        Delete
-                      </Button>
+                        
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() => openDeleteDialog(service)}
+                          disabled={actionLoading}
+                          startIcon={<DeleteIcon />}
+                          sx={{ 
+                            borderRadius: 30,
+                            px: 3,
+                            borderColor: '#d32f2f',
+                            color: '#d32f2f'
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
                     </Box>
                   </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </Box>
       
       {/* Delete Confirmation Dialog */}
       <Dialog
@@ -355,22 +510,32 @@ const Profile = () => {
         onClose={closeDeleteDialog}
         aria-labelledby="alert-dialog-title"
         aria-describedby="alert-dialog-description"
+        PaperProps={{
+          sx: { borderRadius: 2 }
+        }}
       >
-        <DialogTitle id="alert-dialog-title">
+        <DialogTitle id="alert-dialog-title" sx={{ pb: 1 }}>
           {"Delete Service?"}
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
             Are you sure you want to delete this service? This action cannot be undone.
             {serviceToDelete && (
-              <Typography variant="body1" component="div" sx={{ mt: 2, fontWeight: 'bold' }}>
-                {getServiceName(serviceToDelete.type)} - {serviceToDelete.businessName || 'Your Business'}
-              </Typography>
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'error.light', borderRadius: 1 }}>
+                <Typography variant="body1" component="div" sx={{ fontWeight: 'bold', color: 'error.dark' }}>
+                  {getServiceName(serviceToDelete.type)} - {serviceToDelete.businessName || 'Your Business'}
+                </Typography>
+              </Box>
             )}
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={closeDeleteDialog} disabled={actionLoading}>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button 
+            onClick={closeDeleteDialog} 
+            disabled={actionLoading}
+            variant="outlined"
+            sx={{ borderRadius: 2, px: 3 }}
+          >
             Cancel
           </Button>
           <Button 
@@ -379,12 +544,13 @@ const Profile = () => {
             variant="contained"
             disabled={actionLoading}
             autoFocus
+            sx={{ borderRadius: 2, px: 3 }}
           >
             {actionLoading ? <CircularProgress size={24} /> : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Container>
   );
 };
 

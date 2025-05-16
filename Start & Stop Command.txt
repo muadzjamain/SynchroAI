@@ -1,4 +1,4 @@
 1. Open terminal
 2. Enter below command
-Start: npm run dev-full
+Start: "npm run dev" "npm run client"
 Stop: npx kill-port 3000 3001 5000
