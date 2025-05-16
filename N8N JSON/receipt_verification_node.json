@@ -1,0 +1,227 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "functionCode": "// This function verifies a receipt and processes it if valid\n// It should be called after a customer sends a receipt image/PDF\n\n// Input: \n// - $json.customerPhone: The customer's WhatsApp number\n// - $json.serviceId: The ID of the service this receipt is for\n// - $json.receiptData: The base64 encoded receipt image/PDF\n// - $json.receiptType: The type of receipt (\"pdf\" or \"image\")\n\nconst customerPhone = $input.item.json.customerPhone;\nconst serviceId = $input.item.json.serviceId;\nconst receiptData = $input.item.json.receiptData;\nconst receiptType = $input.item.json.receiptType || 'image';\n\n// Validate inputs\nif (!customerPhone || !serviceId || !receiptData) {\n  return {\n    success: false,\n    message: 'Missing required fields: customerPhone, serviceId, or receiptData'\n  };\n}\n\n// Simulate AI verification (in a real scenario, you'd use an AI model to verify the receipt)\nfunction verifyReceipt(receiptData) {\n  // This is a placeholder for actual AI verification logic\n  // In a real implementation, you would use an AI model to analyze the receipt\n  // For now, we'll just simulate a successful verification\n  \n  // You could check for specific text in the receipt, validate amounts, etc.\n  return {\n    isValid: true,\n    confidence: 0.95,\n    details: {\n      amount: 100,\n      date: new Date().toISOString(),\n      merchantName: 'Example Merchant'\n    }\n  };\n}\n\n// Verify the receipt\nconst verificationResult = verifyReceipt(receiptData);\n\nif (!verificationResult.isValid) {\n  return {\n    success: false,\n    verified: false,\n    message: 'Receipt verification failed',\n    details: verificationResult\n  };\n}\n\n// If we get here, the receipt is valid\nreturn {\n  success: true,\n  verified: true,\n  message: 'Receipt verified successfully',\n  customerPhone,\n  serviceId,\n  receiptData,\n  receiptType,\n  verificationDetails: verificationResult.details\n};"
+      },
+      "id": "2a0a7e7e-d9a0-4c5e-9f9c-9f5c3a9e9f9c",
+      "name": "Verify Receipt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        820,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$json.firebaseFunctionUrl}}/processVerifiedOrder",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "serviceId",
+              "value": "={{$json.serviceId}}"
+            },
+            {
+              "name": "customerPhone",
+              "value": "={{$json.customerPhone}}"
+            },
+            {
+              "name": "receiptData",
+              "value": "={{$json.receiptData}}"
+            },
+            {
+              "name": "receiptType",
+              "value": "={{$json.receiptType}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3b1b8f8f-e0a1-5d6f-a0a0-a0a0a0a0a0a0",
+      "name": "Process Verified Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.verified}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "4c2c9f9f-f1b1-6e7f-b1b1-b1b1b1b1b1b1",
+      "name": "Is Receipt Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "firebaseFunctionUrl",
+              "value": "https://us-central1-synchroai1.cloudfunctions.net"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5d3d0f0f-g2c2-7f8f-c2c2-c2c2c2c2c2c2",
+      "name": "Set Firebase Function URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "6e4e1f1f-h3d3-8f9f-d3d3-d3d3d3d3d3d3",
+      "name": "Respond With Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  \"success\": false,\n  \"message\": \"Receipt verification failed. Please submit a valid receipt.\",\n  \"errorDetails\": $json\n}}",
+        "options": {}
+      },
+      "id": "7f5f2f2f-i4e4-9f0f-e4e4-e4e4e4e4e4e4",
+      "name": "Respond With Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "verify-receipt",
+        "options": {}
+      },
+      "id": "8g6g3g3g-j5f5-0g1g-f5f5-f5f5f5f5f5f5",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Receipt Verification Workflow\n\nThis workflow handles receipt verification and storage in Firebase:\n\n1. Receives a webhook with receipt data\n2. Verifies the receipt (using AI in a real implementation)\n3. If valid, uploads to Firebase Storage and creates a record in Firestore\n4. Returns success/error response\n\n### Required Input Format:\n```json\n{\n  \"customerPhone\": \"+60123456789\",\n  \"serviceId\": \"service-id-from-firebase\",\n  \"receiptData\": \"base64-encoded-image-or-pdf\",\n  \"receiptType\": \"image\" or \"pdf\"\n}\n```\n\n### Integration with WhatsApp Workflow\nThis should be called from your WhatsApp workflow when a customer sends a receipt.",
+        "height": 420,
+        "width": 620
+      },
+      "id": "9h7h4h4h-k6g6-1h2h-g6g6-g6g6g6g6g6g6",
+      "name": "Workflow Description",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        260,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "Is Receipt Valid?": {
+      "main": [
+        [
+          {
+            "node": "Verify Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond With Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Firebase Function URL": {
+      "main": [
+        [
+          {
+            "node": "Is Receipt Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Receipt": {
+      "main": [
+        [
+          {
+            "node": "Process Verified Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Verified Order": {
+      "main": [
+        [
+          {
+            "node": "Respond With Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Firebase Function URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

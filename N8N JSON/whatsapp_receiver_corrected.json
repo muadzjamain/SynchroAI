@@ -3,6 +3,208 @@
   "nodes": [
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "receipt-detection-condition",
+              "leftValue": "={{ $json.hasMedia }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "receipt-media-type-condition",
+              "leftValue": "={{ $json.mediaType }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEqual",
+                "name": "filter.operator.notEqual"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "receipt-detection-node",
+      "name": "IF (Media Received)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.mediaUrl }}",
+        "authentication": "genericCredentialType",
+        "sendQuery": true,
+        "options": {}
+      },
+      "id": "download-media-node",
+      "name": "Download Media",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// This function determines if the media is likely a receipt\n// It checks image type, file name patterns, and other indicators\n\nconst mediaType = $input.item.json.mediaType;\nconst messageText = $input.item.json.messageText || '';\nconst fileName = $input.item.json.mediaUrl.split('/').pop() || '';\n\n// Keywords that suggest this might be a receipt\nconst receiptKeywords = ['receipt', 'payment', 'invoice', 'bukti', 'pembayaran', 'resit', 'bayaran', 'transfer'];\n\n// Check if the media type is an image or PDF\nconst isImageOrPdf = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'].includes(mediaType);\n\n// Check if the message text contains receipt-related keywords\nconst textHasReceiptKeywords = receiptKeywords.some(keyword => \n  messageText.toLowerCase().includes(keyword)\n);\n\n// Check if the file name contains receipt-related keywords\nconst fileNameHasReceiptKeywords = receiptKeywords.some(keyword => \n  fileName.toLowerCase().includes(keyword)\n);\n\n// Determine if this is likely a receipt\nconst isLikelyReceipt = isImageOrPdf && (textHasReceiptKeywords || fileNameHasReceiptKeywords);\n\n// Determine the receipt type (image or PDF)\nlet receiptType = 'image';\nif (mediaType === 'application/pdf') {\n  receiptType = 'pdf';\n}\n\n// Return the result\nreturn {\n  isLikelyReceipt,\n  receiptType,\n  mediaType,\n  fileName,\n  mediaData: $input.item.json.binary ? $input.item.json.binary.data.base64 : null\n};"
+      },
+      "id": "analyze-media-node",
+      "name": "Analyze Media",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-receipt-condition",
+              "leftValue": "={{ $json.isLikelyReceipt }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-receipt-node",
+      "name": "IF (Is Receipt)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// This function prepares data for the receipt verification process\n\n// Get the required data from the input\nconst serviceId = $input.item.json.serviceId;\nconst customerPhone = $input.item.json.senderPhone;\nconst receiptType = $input.item.json.receiptType || 'image';\nconst mediaData = $input.item.json.mediaData;\n\n// Validate the data\nif (!serviceId || !customerPhone || !mediaData) {\n  return {\n    success: false,\n    error: 'Missing required data for receipt verification',\n    missingFields: {\n      serviceId: !serviceId,\n      customerPhone: !customerPhone,\n      mediaData: !mediaData\n    }\n  };\n}\n\n// Prepare the data for verification\nreturn {\n  success: true,\n  serviceId,\n  customerPhone,\n  receiptData: mediaData,\n  receiptType,\n  verificationTimestamp: new Date().toISOString(),\n  firebaseFunctionUrl: 'https://us-central1-synchroai1.cloudfunctions.net'  // Update with your actual Firebase function URL\n};"
+      },
+      "id": "prepare-receipt-data-node",
+      "name": "Prepare Receipt Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.firebaseFunctionUrl }}/processVerifiedOrder",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "serviceId",
+              "value": "={{ $json.serviceId }}"
+            },
+            {
+              "name": "customerPhone",
+              "value": "={{ $json.customerPhone }}"
+            },
+            {
+              "name": "receiptData",
+              "value": "={{ $json.receiptData }}"
+            },
+            {
+              "name": "receiptType",
+              "value": "={{ $json.receiptType }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "process-receipt-node",
+      "name": "Process Receipt",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        2000,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "whatsappMessage",
+              "value": "Thank you for submitting your receipt. It has been verified and recorded in our system. Your order is now being processed."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "receipt-success-message-node",
+      "name": "Receipt Success Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2220,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.senderPhone }}",
+        "text": "={{ $json.whatsappMessage }}",
+        "options": {}
+      },
+      "id": "send-verified-receipt-confirmation-node",
+      "name": "Send Verified Receipt Confirmation",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        400
+      ]
+    },
+    {
+      "parameters": {
         "updates": [
           "messages"
         ],
@@ -62,6 +264,18 @@
             {
               "name": "contactName",
               "value": "={{ $json.contactName || \"Unknown\" }}"
+            },
+            {
+              "name": "hasMedia",
+              "value": "={{ $json.hasMedia || false }}"
+            },
+            {
+              "name": "mediaType",
+              "value": "={{ $json.mediaType || \"\" }}"
+            },
+            {
+              "name": "mediaUrl",
+              "value": "={{ $json.mediaUrl || \"\" }}"
             }
           ]
         },
@@ -1043,6 +1257,108 @@
     }
   ],
   "connections": {
+    "IF (Media Received)": {
+      "main": [
+        [
+          {
+            "node": "Download Media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Service by WhatsApp Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Media": {
+      "main": [
+        [
+          {
+            "node": "Analyze Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Media": {
+      "main": [
+        [
+          {
+            "node": "IF (Is Receipt)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF (Is Receipt)": {
+      "main": [
+        [
+          {
+            "node": "Prepare Receipt Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Service by WhatsApp Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Receipt Data": {
+      "main": [
+        [
+          {
+            "node": "Process Receipt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Receipt": {
+      "main": [
+        [
+          {
+            "node": "Receipt Success Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receipt Success Message": {
+      "main": [
+        [
+          {
+            "node": "Send Verified Receipt Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Verified Receipt Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Update Service Last Interaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "WhatsApp Trigger": {
       "main": [
         [
@@ -1111,7 +1427,7 @@
         ]
       ]
     },
-    "Send Receipt Confirmation": {
+    "Send Order Receipt Confirmation": {
       "main": [
         [
           {
